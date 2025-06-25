@@ -1,6 +1,13 @@
 const mongoose = require('mongoose');
+const { type } = require('os');
+const crypto = require('crypto');
 
 const userSchema = new mongoose.Schema({
+  user_id: {
+    type: String, 
+    unique: true,
+    required: [true, 'User ID is required'],
+  },
   username: {
     type: String,
     required: true,
@@ -17,17 +24,14 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  phonenumber: {
+  phone: {
     type: String,
     required: true,
     unique: true,
   },
-  address: {
-        type: String,
-        required: true,
-    },
-
-
+   
 }, { timestamps: true });
+
+ 
 
 module.exports = mongoose.model('User', userSchema);
