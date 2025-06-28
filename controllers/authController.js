@@ -1,10 +1,8 @@
-const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const userService = require('../services/userService');
+const generateToken = require('../middleware/authMiddleware').generateToken;
 
-const generateToken = (userId) => {
-  return jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
-};
+ 
 
 exports.register = async (req, res) => {
   const { username, email, phone, password } = req.body;

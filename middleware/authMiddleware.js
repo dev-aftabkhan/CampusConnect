@@ -13,4 +13,9 @@ const protect = (req, res, next) => {
   }
 };
 
-module.exports = protect;
+// generateToken function can be used to create tokens for users
+const generateToken = (userId) => {
+  return jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
+};
+
+module.exports = {protect, generateToken};

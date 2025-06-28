@@ -29,9 +29,27 @@ const userSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
+  profilePicture: {
+    type: String,
+    default: '', // Placeholder URL
+  },
+  bio: {
+    type: String,
+    default: '',
+  },
+  location: {
+    type: String,
+  },
+
+  follower: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  }],
+  following: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  }],
    
 }, { timestamps: true });
-
  
-
 module.exports = mongoose.model('User', userSchema);

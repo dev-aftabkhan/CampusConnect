@@ -7,7 +7,7 @@ exports.createUser = async ({ username, email, phone, password }) => {
   // ✅ Manually generate a unique user_id here
   const user_id = `${username.toLowerCase()}-${crypto.randomBytes(4).toString('hex')}`;
 
-  const user = new User({  user_id, username, email, phone, password: hashedPassword });
+  const user = new User({ user_id, username, email, phone, password: hashedPassword });
   return await user.save();
 };
 
@@ -26,3 +26,16 @@ exports.findUserByUsername = async (username) => {
 exports.findUserByEmailOrPhone = async (identifier) => {
   return await User.findOne({ $or: [{ email: identifier }, { phone: identifier }] });
 };
+
+exports.findUserById = async (user_id) => {
+  return await User.findOne({ user_id });
+};
+
+exports.updateuser = async (user, updateData) => {
+   Object.entries(updateData).forEach(([key, value]) => {
+    if (value !== undefined) {
+      user[key] = value;
+    }
+  });
+  return await user.save();
+}
