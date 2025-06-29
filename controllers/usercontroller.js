@@ -1,8 +1,7 @@
 // update the user profile
 const userService = require('../services/userService');
 const { validationResult } = require('express-validator');
-const generateToken = require('../middleware/authMiddleware')  // Assuming you have a utility function to generate JWT tokens
-const fs = require('fs');
+ 
 const path = require('path'); 
  
 exports.updateProfile = async (req, res) => {
@@ -68,9 +67,6 @@ exports.updateProfile = async (req, res) => {
      
     const updatedUser = await userService.updateuser(user, updates);
 
-    // Generate a new token if necessary (e.g., if password was changed)
-    const token = generateToken.generateToken(req.user);
-
     res.status(200).json({
       message: 'Profile updated successfully',
       user: {
@@ -80,7 +76,6 @@ exports.updateProfile = async (req, res) => {
         phone: updatedUser.phone,
         interests: updatedUser.interests,
       },
-      token,
     });
   } catch (error) {
     console.error('Error updating profile:', error);

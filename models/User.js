@@ -46,14 +46,43 @@ const userSchema = new mongoose.Schema({
   },
 
   follower: [{
-    type: mongoose.Schema.Types.ObjectId,
+    type: String,
     ref: 'User',
   }],
   following: [{
-    type: mongoose.Schema.Types.ObjectId,
+    type: String,
     ref: 'User',
   }],
+  followRequests: [{ 
+    type: String, 
+    ref: 'User',
+  }]
    
-}, { timestamps: true });
+}, { timestamps: true },
+{
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+userSchema.virtual('followRequestsInfo', {
+  ref: 'User',
+  localField: 'followRequests',
+  foreignField: 'user_id',
+  justOne: false
+});
+userSchema.virtual('followerInfo', {
+  ref: 'User',
+  localField: 'follower',
+  foreignField: 'user_id',
+  justOne: false
+});
+userSchema.virtual('followingInfo', {
+  ref: 'User',
+  localField: 'following',
+  foreignField: 'user_id',
+  justOne: false
+});
+
+
  
 module.exports = mongoose.model('User', userSchema);
