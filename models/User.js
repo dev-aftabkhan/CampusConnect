@@ -40,6 +40,10 @@ const userSchema = new mongoose.Schema({
   location: {
     type: String,
   },
+  interests: {
+    type: [String], // Array of strings for interests
+    default: [],
+  },
 
   follower: [{
     type: mongoose.Schema.Types.ObjectId,

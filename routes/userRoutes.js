@@ -2,9 +2,11 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/usercontroller');
 const { protect } = require('../middleware/authMiddleware');
+const upload = require('../middleware/uploadMiddleware');
 
 
 // Route to update user profile
 router.put('/profile', protect,userController.updateProfile);
+router.patch('/profile-image', protect, upload.single('profilePicture'), userController.updateProfilePicture);
 
 module.exports = router;
