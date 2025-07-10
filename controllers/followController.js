@@ -62,3 +62,12 @@ exports.getMutuals = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+exports.unfollowUser = async (req, res) => {
+  try {
+    await followService.unfollowUser(req.user, req.params.id);
+    res.json({ message: 'Unfollowed successfully' });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};

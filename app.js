@@ -5,6 +5,10 @@ const connectDB = require('./config/db');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/userRoutes');
 const followRoutes = require('./routes/followRoutes');
+const postRoutes = require('./routes/postRoutes');
+const searchRoutes = require('./routes/searchRoutes');
+const messageRoutes = require('./routes/message');
+  
 
 dotenv.config();
 connectDB();
@@ -19,6 +23,10 @@ app.use('/uploads', express.static('uploads'));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/follow', followRoutes);
+app.use('/api/posts', postRoutes);
+app.use ('/api/search', searchRoutes);
+app.use('/api/messages', messageRoutes);
+
  
 
 module.exports = app;

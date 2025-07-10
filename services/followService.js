@@ -93,3 +93,22 @@ exports.getMutuals = async (viewerId, targetId) => {
 
   return await User.find({ user_id: { $in: mutualIds } }, 'username email profilePicture');
 };
+
+exports.unfollowUser = async (userId, targetId) => {
+  const currentUser = await User.findOne({ user_id: userId });
+  const targetUser = await User.findOne({ user_id: targetId });
+
+  if (!currentUser || !targetUser) throw new Error('User not found');
+
+  if (!currentUser.following.includes(targetUser.user_id)) {
+    throw new Error('You are not following this user');
+  }
+
+  // Remove the relationship
+  currentUser.following.pull(targetUser.user_id);
+  targetUser.follower.pull(currentUser.user_id);
+
+  await currentUser.save();
+  await targetUser.save();
+};
+

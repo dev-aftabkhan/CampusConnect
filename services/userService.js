@@ -38,4 +38,8 @@ exports.updateuser = async (user, updateData) => {
     }
   });
   return await user.save();
-}
+};
+
+exports.getprofilebyid = async (user_id) => {
+  return await User.findOne({ user_id }, 'user_id username email phone profilePicture bio interests');
+};

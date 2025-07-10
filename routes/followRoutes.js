@@ -10,5 +10,6 @@ router.post('/:id/follow-reject', protect, followController.rejectFollow);
 router.get('/:id/followers', protect, followController.getFollowers);
 router.get('/:id/following', protect, followController.getFollowing);
 router.get('/:id/mutuals', protect, followController.getMutuals);
+router.post('/:id/unfollow', protect, followController.unfollowUser);
 
 module.exports = router;
