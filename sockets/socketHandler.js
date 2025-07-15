@@ -1,50 +1,65 @@
- const jwt = require('jsonwebtoken');
- const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 const Message = require('../models/Message');
+const { mongo, default: mongoose } = require('mongoose');
 
 const connectedUsers = new Map();
 
 function socketHandler(io) {
-  io.use((socket, next) => {
+  io.use(async (socket, next) => {
     const token = socket.handshake.auth?.token;
     if (!token) return next(new Error('No token'));
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      socket.user = decoded.id;
+      const user = await User.findOne({ user_id: decoded.id });
+      if (!user) return next(new Error('User not found'));
+
+      socket.user = user;
       next();
-    } catch {
-      return next(new Error('Invalid token'));
+    } catch (err) {
+      next(new Error('Invalid token'));
     }
   });
 
   io.on('connection', (socket) => {
-    connectedUsers.set(socket.user, socket);
-
-    console.log(`User connected: ${socket.user}`);
+    connectedUsers.set(socket.user.user_id, socket);
+    console.log(`🔗 ${socket.user.username} connected`);
 
     socket.on('send_message', async ({ to, text }) => {
+      try {
+        const receiver = await User.findOne({ user_id: to });
+        if (!receiver) return socket.emit('error', 'Receiver not found');
 
-      const message = await Message.create({
-        message_id: new mongoose.Types.ObjectId().toString(),
-        sender: socket.user,
-        receiver: to,
-        text
-      });
+        // ✅ Only allow if mutual follow
+        const isMutual = socket.user.following.includes(to) && receiver.following.includes(socket.user.user_id);
+        if (!isMutual) return socket.emit('error', 'You can only message mutual followers');
 
-      // Send message to receiver if online
-      const receiverSocket = connectedUsers.get(to);
-      if (receiverSocket) {
-        receiverSocket.emit('receive_message', message);
+        // ✅ Save message
+        const message = await Message.create({
+          message_id: new mongoose.Types.ObjectId().toString(),
+          sender: socket.user.user_id,
+          receiver: to,
+          text
+        });
+
+        // ✅ Emit to sender
+        socket.emit('message_sent', message);
+
+        // ✅ Emit to receiver if online
+        const targetSocket = connectedUsers.get(to);
+        if (targetSocket) {
+          targetSocket.emit('receive_message', message);
+        }
+
+      } catch (err) {
+        socket.emit('error', 'Failed to send message');
       }
-
-      // Echo to sender (confirmation)
-      socket.emit('message_sent', message);
     });
 
     socket.on('disconnect', () => {
-      connectedUsers.delete(socket.user);
-      console.log(`User disconnected: ${socket.user}`);
+      connectedUsers.delete(socket.user.user_id);
+      console.log(`❌ ${socket.user.username} disconnected`);
     });
   });
 }
