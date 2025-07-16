@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Semantic color tokens (light theme by default) */
+    --primary: 252 56% 62%;      /* Soft Indigo */
+    --accent: 340 84% 72%;       /* Soft Pink */
+    --background: 0 0% 100%;     /* Pure White */
+    --surface: 228 28% 97%;      /* Soft Gray */
+    --text: 220 7% 14%;          /* Charcoal */
+    --text-muted: 220 7% 54%;    /* Cool Gray */
+    --border: 220 20% 90%;       /* Light Gray */
+    --success: 146 72% 60%;      /* Emerald Green */
+    --danger: 356 87% 71%;       /* Sunset Red */
+    --gradient-hero: linear-gradient(90deg, hsl(252 56% 62%), hsl(340 84% 72%));
+    --gradient-accent: linear-gradient(90deg, hsl(340 84% 72%), hsl(252 56% 62%));
+    --shadow: 0 2px 8px 0 hsl(220 7% 80% / 0.08);
+    --radius: 0.75rem;
+    --transition: background 0.3s, color 0.3s, border-color 0.3s;
+  }
+
+  .dark {
+    /* Dark theme overrides */
+    --primary: 258 95% 76%;      /* Neon Purple */
+    --accent: 327 88% 70%;       /* Soft Magenta */
+    --background: 240 7% 6%;     /* Deep Black */
+    --surface: 0 0% 12%;         /* Dark Slate */
+    --text: 210 20% 92%;         /* Light Gray */
+    --text-muted: 215 13% 65%;   /* Muted Gray */
+    --border: 240 4% 17%;        /* Charcoal Gray */
+    --success: 85 81% 44%;       /* Lime Green */
+    --danger: 347 89% 60%;       /* Warm Red */
+    --gradient-hero: linear-gradient(90deg, hsl(258 95% 76%), hsl(327 88% 70%));
+    --gradient-accent: linear-gradient(90deg, hsl(327 88% 70%), hsl(258 95% 76%));
+    --shadow: 0 2px 12px 0 hsl(240 7% 2% / 0.32);
+    --radius: 0.75rem;
+    --transition: background 0.3s, color 0.3s, border-color 0.3s;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    transition: var(--transition);
+  }
+
+  body {
+    @apply font-sans antialiased;
+    background: hsl(var(--background));
+    color: hsl(var(--text));
+    min-height: 100vh;
+    transition: var(--transition);
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+    background: transparent;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--surface));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary));
+  }
+
+  /* Selection */
+  ::selection {
+    background: hsl(var(--accent) / 0.18);
+  }
+}
+
+@layer components {
+  /* Animated gradient utility for hero/cta backgrounds */
+  .animate-gradient {
+    background: var(--gradient-hero);
+    background-size: 400% 400%;
+    animation: gradientMove 8s ease-in-out infinite;
+  }
+
+  @keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  /* Minimal card style */
+  .card {
+    background: hsl(var(--surface));
+    color: hsl(var(--text));
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid hsl(var(--border));
+    transition: var(--transition);
+  }
+
+  /* Button style */
+  .btn-primary {
+    background: hsl(var(--primary));
+    color: #fff;
+    border-radius: var(--radius);
+    padding: 0.5rem 1.25rem;
+    font-weight: 600;
+    transition: var(--transition);
+    box-shadow: 0 1px 4px hsl(var(--primary) / 0.10);
+  }
+  .btn-primary:hover {
+    background: hsl(var(--accent));
+    color: #fff;
+  }
+}
