@@ -7,12 +7,9 @@ const socketHandler = require('./sockets/socketHandler');
 const server = http.createServer(app);
 const io = socketIO(server, {
   cors: {
-    origin: 'http://localhost:5173', // 👈 use your real frontend domain here
-    methods: ['GET', 'POST'],
-    credentials: true               // 👈 this is required when using cookies/auth
+    origin: '*'
   }
 });
-
 
 socketHandler(io);
 
