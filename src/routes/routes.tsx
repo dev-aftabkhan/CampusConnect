@@ -18,12 +18,12 @@ export const appRoutes: AppRoute[] = [
     {
         key: "login",
         path: "/login",
-        element: lazy(() => import("@/pages/Login")),
+        element: lazy(() => import("@/components/auth/Login")),
     },
     {
         key: "register",
         path: "/register",
-        element: lazy(() => import("@/pages/Register")),
+        element: lazy(() => import("@/components/auth/Register")),
     },
     {
         key: "profile",

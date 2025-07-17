@@ -7,13 +7,14 @@ import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { MainLayout } from "@/layouts/MainLayout";
 
 // Pages
-import Feed from "./pages/Feed";
-import Chat from "./pages/Chat";
-import Discover from "./pages/Discover";
-import Profile from "./pages/Profile";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import NotFound from "./pages/NotFound";
+// Remove these imports if you are using lazy loading via appRoutes
+// import Feed from "./pages/Feed";
+// import Chat from "./pages/Chat";
+// import Discover from "./pages/Discover";
+// import Profile from "./pages/Profile";
+// import NotFound from "./pages/NotFound";
+import { appRoutes } from "@/routes/routes";
+import { AuthRoute } from "@/components/routes/AuthRoute";
 
 const queryClient = new QueryClient();
 
@@ -25,18 +26,25 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Auth Routes (without layout) */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-
-            {/* Main App Routes (with layout) */}
-            <Route path="/" element={<MainLayout><Feed /></MainLayout>} />
-            <Route path="/chat" element={<MainLayout><Chat /></MainLayout>} />
-            <Route path="/discover" element={<MainLayout><Discover /></MainLayout>} />
-            <Route path="/profile" element={<MainLayout><Profile /></MainLayout>} />
-
-            {/* Catch-all route */}
-            <Route path="*" element={<NotFound />} />
+            {appRoutes.map(({ key, path, element: Element, auth }) => (
+              <Route
+                key={key}
+                path={path}
+                element={
+                  auth ? (
+                    <AuthRoute auth={auth}>
+                      <MainLayout>
+                        <Element />
+                      </MainLayout>
+                    </AuthRoute>
+                  ) : (
+                    <AuthRoute auth={auth}>
+                      <Element />
+                    </AuthRoute>
+                  )
+                }
+              />
+            ))}
           </Routes>
         </BrowserRouter>
       </TooltipProvider>

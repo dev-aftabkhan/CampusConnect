@@ -3,7 +3,7 @@
 import React, { Suspense, useEffect, useState } from "react";
 import { useRoutes, BrowserRouter, Navigate, useLocation } from "react-router-dom";
 import { appRoutes } from "./routes";
-import { getCurrentUser } from "@/features/auth/authApi";
+import { getCurrentUser } from "@/api/auth";
 
 function RouteWrapper({ element, auth, path }: { element: React.LazyExoticComponent<() => JSX.Element>; auth?: boolean; path: string }) {
     const [isAuth, setIsAuth] = useState<boolean | null>(null);
