@@ -146,3 +146,29 @@ exports.updateProfilePicture = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+//get user profile by id after authentication
+exports.getUserProfile = async (req, res) => {
+  const user_id = req.user;
+  console.log('Fetching profile for user:', user_id);
+  try {
+    const user = await userService.getprofilebyid(user_id); 
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.status(200).json({
+      user: {
+        user_id: user.user_id,
+        username: user.username,
+        email: user.email,
+        phone: user.phone,
+        profilePicture: user.profilePicture,
+        bio: user.bio,
+        interests: user.interests,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching profile:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
