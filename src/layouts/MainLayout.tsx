@@ -19,6 +19,7 @@ export function MainLayout({ children }: MainLayoutProps) {
             })
             .catch(() => setIsAuth(false));
     }, []);
+    console.log("MainLayout isAuth:", isAuth); // <-- Add this line
     if (isAuth === null) return <div className="w-full h-screen flex items-center justify-center text-lg">Loading...</div>;
     return (
         <div className="min-h-screen flex flex-col bg-background">

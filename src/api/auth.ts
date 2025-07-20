@@ -5,6 +5,7 @@ import type { User } from '@/types/user';
 axios.defaults.withCredentials = true;
 
 const BASE_URL = "http://20.192.25.27:4242/api/auth";
+const BASE_URL_USER = "http://20.192.25.27:4242/api/users";
 
 export async function login(identifier: string, password: string) {
   if (!identifier || !password) {
@@ -40,13 +41,13 @@ export async function register(username: string, email: string, phone: string, p
 export async function getCurrentUser(): Promise<User | null> {
   const token = getToken();
   try {
-    const res = await axios.get(`${BASE_URL}/me`, {
+    const res = await axios.get(`${BASE_URL_USER}/userprofile`, {
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {})
       }
     });
-    return res.data as User;
+    return res.data.user as User;
   } catch {
     return null;
   }

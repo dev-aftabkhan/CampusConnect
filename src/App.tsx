@@ -38,9 +38,9 @@ const App = () => (
                       </MainLayout>
                     </AuthRoute>
                   ) : (
-                    <AuthRoute auth={auth}>
-                      <Element />
-                    </AuthRoute>
+                  <AuthRoute auth={auth}>
+                    <Element />
+                  </AuthRoute>
                   )
                 }
               />

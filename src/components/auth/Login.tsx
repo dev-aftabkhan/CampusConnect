@@ -10,39 +10,23 @@ import AOS from "aos";
 import "aos/dist/aos.css";
 
 export default function Login() {
-    const [mode, setMode] = useState<"phone" | "userpass">("phone");
-    const [phone, setPhone] = useState("");
-    const [phonePassword, setPhonePassword] = useState("");
-    const [userpass, setUserpass] = useState({ email: "", password: "" });
-    const [showPhonePassword, setShowPhonePassword] = useState(false);
-    const [showUserPassPassword, setShowUserPassPassword] = useState(false);
+    const [identifier, setIdentifier] = useState("");
+    const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
 
-    const handlePhoneLogin = async (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
         setIsLoading(true);
         try {
-            await login(phone, phonePassword);
+            await login(identifier, password);
             navigate("/", { replace: true });
+            window.location.reload();
         } catch (err: any) {
-            setError(err?.response?.data?.message || "Invalid phone or password");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleUserPassLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError("");
-        setIsLoading(true);
-        try {
-            await login(userpass.email, userpass.password);
-            navigate("/", { replace: true });
-        } catch (err: any) {
-            setError(err?.response?.data?.message || "Invalid email or password");
+            setError(err?.response?.data?.message || "Invalid credentials");
         } finally {
             setIsLoading(false);
         }
@@ -77,147 +61,58 @@ export default function Login() {
                         <p className="text-base text-gray-900">Welcome back to your university community</p>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        {/* Custom Bar Tabs */}
-                        <div className="flex justify-center mb-4">
-                            <div className="relative w-4/5 h-10 bg-gray-200 rounded-full flex items-center shadow-inner">
-                                <button
-                                    type="button"
-                                    className={`w-1/2 h-8 mx-1 rounded-full font-medium transition-all duration-300 z-10 ${mode === "userpass"
-                                        ? "bg-primary text-primary-foreground shadow"
-                                        : "bg-transparent text-gray-700 hover:bg-primary/10"
-                                        }`}
-                                    onClick={() => setMode("userpass")}
-                                    tabIndex={0}
-                                >
-                                    Email
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`w-1/2 h-8 mx-1 rounded-full font-medium transition-all duration-300 z-10 ${mode === "phone"
-                                        ? "bg-primary text-primary-foreground shadow"
-                                        : "bg-transparent text-gray-700 hover:bg-primary/10"
-                                        }`}
-                                    onClick={() => setMode("phone")}
-                                    tabIndex={0}
-                                >
-                                    Phone
-                                </button>
-                                {/* Animated indicator */}
-                                <span
-                                    className="absolute top-1 left-1 h-8 w-[calc(50%-0.5rem)] rounded-full bg-primary transition-all duration-300 z-0"
-                                    style={{
-                                        transform: mode === "userpass" ? "translateX(0)" : "translateX(100%)"
-                                    }}
+                        {/* Single Login Form */}
+                        <form onSubmit={handleLogin} className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="identifier" className="text-sm font-medium text-gray-900">Email or Phone</Label>
+                                <Input
+                                    id="identifier"
+                                    type="text"
+                                    placeholder="your.email@university.edu or 9876543210"
+                                    className="text-gray-900 placeholder:text-primary/70 bg-white/80"
+                                    value={identifier}
+                                    onChange={e => setIdentifier(e.target.value)}
+                                    required
+                                    disabled={isLoading}
                                 />
                             </div>
-                        </div>
-                        {/* Animated Slider Content */}
-                        <div className="space-y-4">
-                            {mode === "userpass" && (
-                                <form onSubmit={handleUserPassLogin} className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="email" className="text-sm font-medium text-gray-900">Email</Label>
-                                        <Input
-                                            id="email"
-                                            type="email"
-                                            placeholder="your.email@university.edu"
-                                            className="text-gray-900 placeholder:text-primary/70 bg-white/80"
-                                            value={userpass.email}
-                                            onChange={e => setUserpass({ ...userpass, email: e.target.value })}
-                                            required
-                                            disabled={isLoading}
-                                        />
-                                    </div>
-                                    <div className="space-y-2 relative">
-                                        <Label htmlFor="password" className="text-sm font-medium text-gray-900">Password</Label>
-                                        <Input
-                                            id="password"
-                                            type={showUserPassPassword ? "text" : "password"}
-                                            placeholder="Enter your password"
-                                            className="text-gray-900 placeholder:text-primary/70 bg-white/80 pr-10"
-                                            value={userpass.password}
-                                            onChange={e => setUserpass({ ...userpass, password: e.target.value })}
-                                            required
-                                            disabled={isLoading}
-                                        />
-                                        <button
-                                            type="button"
-                                            tabIndex={-1}
-                                            className="absolute right-2 top-8 text-gray-500 hover:text-primary"
-                                            onClick={() => setShowUserPassPassword(v => !v)}
-                                        >
-                                            {showUserPassPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                        </button>
-                                    </div>
-                                    <Button
-                                        type="submit"
-                                        className="w-full font-semibold rounded-full bg-gradient-to-r from-primary to-blue-600 text-white shadow-lg hover:from-blue-600 hover:to-primary transition-all duration-200"
-                                        disabled={isLoading}
-                                    >
-                                        {isLoading ? "Signing in..." : "Login"}
-                                    </Button>
-                                </form>
-                            )}
-                            {mode === "phone" && (
-                                <form onSubmit={handlePhoneLogin} className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="phone" className="text-sm font-medium text-gray-900">Phone Number</Label>
-                                        <Input
-                                            id="phone"
-                                            type="tel"
-                                            placeholder="9876543210"
-                                            className="text-gray-900 placeholder:text-primary/70 bg-white/80"
-                                            value={phone}
-                                            onChange={e => setPhone(e.target.value)}
-                                            required
-                                            disabled={isLoading}
-                                        />
-                                    </div>
-                                    <div className="space-y-2 relative">
-                                        <Label htmlFor="phone-password" className="text-sm font-medium text-gray-900">Password</Label>
-                                        <Input
-                                            id="phone-password"
-                                            type={showPhonePassword ? "text" : "password"}
-                                            placeholder="Enter your password"
-                                            className="text-gray-900 placeholder:text-primary/70 bg-white/80 pr-10"
-                                            value={phonePassword}
-                                            onChange={e => setPhonePassword(e.target.value)}
-                                            required
-                                            disabled={isLoading}
-                                        />
-                                        <button
-                                            type="button"
-                                            tabIndex={-1}
-                                            className="absolute right-2 top-8 text-gray-500 hover:text-primary"
-                                            onClick={() => setShowPhonePassword(v => !v)}
-                                        >
-                                            {showPhonePassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                        </button>
-                                    </div>
-                                    <Button
-                                        type="submit"
-                                        className="w-full font-semibold rounded-full bg-gradient-to-r from-primary to-blue-600 text-white shadow-lg hover:from-blue-600 hover:to-primary transition-all duration-200"
-                                        disabled={isLoading}
-                                    >
-                                        {isLoading ? "Signing in..." : "Login"}
-                                    </Button>
-                                </form>
-                            )}
-                        </div>
-                        {error && <p className="text-sm text-destructive text-center">{error}</p>}
-                        <div className="text-center">
-                            <p className="text-sm text-gray-900">
-                                Don't have an account?{" "}
-                                <Link to="/register" className="text-primary hover:underline font-medium">
-                                    Sign up
-                                </Link>
-                            </p>
+                            <div className="space-y-2 relative">
+                                <Label htmlFor="password" className="text-sm font-medium text-gray-900">Password</Label>
+                                <Input
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="Enter your password"
+                                    className="text-gray-900 placeholder:text-primary/70 bg-white/80 pr-10"
+                                    value={password}
+                                    onChange={e => setPassword(e.target.value)}
+                                    required
+                                    disabled={isLoading}
+                                />
+                                <button
+                                    type="button"
+                                    tabIndex={-1}
+                                    className="absolute right-2 top-8 text-gray-500 hover:text-primary"
+                                    onClick={() => setShowPassword(v => !v)}
+                                >
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                            </div>
+                            <Button
+                                type="submit"
+                                className="w-full font-semibold rounded-full bg-gradient-to-r from-primary to-blue-600 text-white shadow-lg hover:from-blue-600 hover:to-primary transition-all duration-200"
+                                disabled={isLoading}
+                            >
+                                {isLoading ? "Signing in..." : "Login"}
+                            </Button>
+                            {error && <div className="text-destructive text-center text-sm font-medium mt-2">{error}</div>}
+                        </form>
+                        <div className="text-center mt-4">
+                            <span className="text-gray-900">Don't have an account? </span>
+                            <Link to="/register" className="text-primary font-semibold hover:underline">Sign up</Link>
                         </div>
                     </CardContent>
                 </Card>
-                <p className="text-center text-sm text-white/60">
-                    By signing in, you agree to our Terms of Service and Privacy Policy
-                </p>
+                
             </div>
         </div>
     );

@@ -25,7 +25,7 @@ export function Navigation() {
       await logoutApi();
     } catch (error) {
       // Optionally show error toast
-      alert("Logout failed. Please try again.");
+      //alert("Logout failed. Please try again.");
     } finally {
       // Always clear storage and force redirect
       localStorage.clear();
@@ -48,8 +48,8 @@ export function Navigation() {
 
   return (
     <>
-      {/* Top nav always visible for debugging */}
-      <nav className="flex sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
+      {/* Desktop Navbar: visible on md+ screens */}
+      <nav className="hidden md:flex sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
         <div className="container flex h-16 items-center justify-between px-2 md:px-4 gap-4">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
@@ -109,8 +109,8 @@ export function Navigation() {
           </div>
         </div>
       </nav>
-      {/* Hamburger menu for mobile (still visible, but desktop nav forced on) */}
-      <nav className="fixed top-0 left-0 right-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
+      {/* Mobile Navbar: visible on small screens only */}
+      <nav className="flex md:hidden fixed top-0 left-0 right-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
         <div className="flex h-16 items-center justify-between px-4">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
