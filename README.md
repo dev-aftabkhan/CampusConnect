@@ -11,21 +11,62 @@ CampusConnect is a modern, minimal, and professional campus-based social media p
 - Infinite scroll feed, trending topics, events, and suggested connections
 - Authentication-ready routing structure
 
-## Folder Structure
+## Code Structure (2024)
+
+Below is the recommended, clean, and scalable folder structure for CampusConnect. This structure keeps UI kit, layouts, pages, and logic clearly separated for easy development and contribution.
 
 ```
 src/
+  api/                # All API calls (auth.ts, user.ts, post.ts, etc.)
   components/
-    feed/         # Feed-related UI (CreatePost, PostCard, etc.)
-    layout/       # Layout, navigation, theme, palette providers/selectors
-    ui/           # Reusable UI primitives (button, card, badge, etc.)
-  hooks/          # Custom React hooks
-  lib/            # Utilities and helpers
-  pages/          # Page-level components (Feed, Chat, Login, etc.)
-  routes/         # App routing setup
-  index.css       # Tailwind and theme CSS
-  main.tsx        # App entry point
+    ui/               # UI kit: buttons, cards, dialogs, etc. (generic, reusable)
+  hooks/              # Custom React hooks (useMobile, useToast, etc.)
+  layouts/
+    AuthLayout.tsx    # Layout for login/register pages (no navbar)
+    MainLayout.tsx    # Layout for authenticated pages (navbar, etc.)
+  pages/
+    Feed/
+      Feed.tsx        # Main feed page
+      CreatePost.tsx  # Feed-specific component
+      PostCard.tsx    # Feed-specific component
+    auth/
+      LoginPage.tsx   # Login page (uses AuthLayout)
+      Register.tsx    # Register page (uses AuthLayout)
+      Login.tsx       # Login form component
+    Chat.tsx          # Chat page
+    Discover.tsx      # Discover page
+    Index.tsx         # Landing page (if any)
+    NotFound.tsx      # 404 page
+    Profile.tsx       # User profile page
+  routes/
+    AppRouter.tsx     # Main router logic
+    routes.tsx        # Route definitions
+    AuthRoute.tsx     # (if you have route guards)
+  theme/
+    ThemeProvider.tsx
+    PaletteProvider.tsx
+    ThemeSelector.tsx
+    ThemeToggle.tsx
+  types/              # TypeScript types/interfaces
+    user.ts
+    post.ts
+    chat.ts
+    notification.ts
+  utils/              # Utility/helper functions
+    utils.ts
+  App.tsx
+  App.css
+  index.css
+  main.tsx
+  vite-env.d.ts
 ```
+
+- **UI kit** is in `components/ui/` only.
+- **Feature/page-specific components** are inside their respective `pages/` subfolders.
+- **Only two layouts:** `AuthLayout.tsx` and `MainLayout.tsx`.
+- **API, hooks, types, utils** are all in their own folders.
+- **Routes** are centralized in `routes/`.
+- **Theme** logic is in its own folder.
 
 ## Getting Started
 

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { BookOpen, Eye, EyeOff } from "lucide-react";
 import { register as registerApi } from "@/api/auth";
 import AOS from "aos";
+import AuthLayout from "@/layouts/AuthLayout";
 
 export default function Register() {
     const [formData, setFormData] = useState({
@@ -64,7 +65,7 @@ export default function Register() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
+        <AuthLayout>
             <div className="w-full max-w-md space-y-6">
                 {/* Logo and Branding */}
                 <div
@@ -166,6 +167,6 @@ export default function Register() {
                     By signing up, you agree to our Terms of Service and Privacy Policy
                 </p>
             </div>
-        </div>
+        </AuthLayout>
     );
 }
