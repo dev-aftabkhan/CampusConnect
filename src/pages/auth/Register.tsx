@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { BookOpen, Eye, EyeOff } from "lucide-react";
 import { register as registerApi } from "@/api/auth";
 import AOS from "aos";
-import AuthLayout from "@/layouts/AuthLayout";
 
 export default function Register() {
     const [formData, setFormData] = useState({
@@ -25,6 +24,7 @@ export default function Register() {
         api?: string;
     }>({});
     const [isLoading, setIsLoading] = useState(false);
+    const [notification, setNotification] = useState<{ message: string; type: "success" | "error" | null }>({ message: "", type: null });
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -32,13 +32,7 @@ export default function Register() {
     }, []);
 
     const validateForm = () => {
-        const newErrors: {
-            username?: string;
-            email?: string;
-            phone?: string;
-            password?: string;
-            api?: string;
-        } = {};
+        const newErrors: typeof errors = {};
         if (!formData.username) newErrors.username = "Username is required";
         if (!formData.email) newErrors.email = "Email is required";
         if (!formData.phone) newErrors.phone = "Phone is required";
@@ -54,119 +48,149 @@ export default function Register() {
         setIsLoading(true);
         try {
             await registerApi(formData.username, formData.email, formData.phone, formData.password);
-            navigate("/login");
+            setNotification({ message: "Registration successful! Redirecting to login...", type: "success" });
+            setTimeout(() => setNotification({ message: "", type: null }), 5000);
+            setTimeout(() => navigate("/login"), 1200);
         } catch (error: any) {
-            setErrors({
-                api: error?.response?.data?.message || "Registration failed. Please try again."
-            });
+            setNotification({ message: error?.response?.data?.message || "Registration failed. Please try again.", type: "error" });
+            setTimeout(() => setNotification({ message: "", type: null }), 5000);
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <AuthLayout>
-            <div className="w-full max-w-md space-y-6">
-                {/* Logo and Branding */}
-                <div
-                    className="flex items-center justify-center gap-3 mb-2"
-                >
-                    <div className="p-3 rounded-xl bg-white/10 backdrop-blur flex items-center">
-                        <BookOpen className="h-8 w-8 text-primary drop-shadow" />
-                    </div>
-                    <span
-                        className="text-3xl font-extrabold tracking-tight text-white drop-shadow"
-                        style={{ fontFamily: "Inter, Arial, sans-serif" }}
-                    >
-                        CampusConnect
-                    </span>
-                </div>
-                <p className="text-center text-lg text-white/80 mb-2">Create your account</p>
-                {/* Register Card */}
-                <Card className="backdrop-blur-sm bg-white/95 border-white/20">
-                    <CardHeader className="space-y-1 text-center">
-                        <CardTitle className="text-2xl text-gray-900">Sign Up</CardTitle>
-                        <p className="text-base text-gray-900">Join your university community</p>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="username" className="text-sm font-medium text-gray-900">Username</Label>
-                                <Input
-                                    id="username"
-                                    type="text"
-                                    placeholder="Enter your username"
-                                    value={formData.username}
-                                    onChange={e => setFormData({ ...formData, username: e.target.value })}
-                                    className={`${errors.username ? 'border-destructive focus:border-destructive' : ''} text-gray-900 placeholder:text-primary/70 bg-white/80`}
-                                />
-                                {errors.username && <p className="text-sm text-destructive">{errors.username}</p>}
+        <div className="min-h-screen flex items-center justify-center bg-[#f5f3ef] px-4">
+            <div className="w-full max-w-4xl h-[90vh] flex md:flex-row rounded-2xl shadow-2xl border border-white/40 bg-white/60 backdrop-blur-lg overflow-hidden">
+                {/* Left - Form */}
+                <div className="flex-1 flex items-center justify-center px-6 py-10 relative">
+                    <div className="w-full max-w-md space-y-6">
+                        {/* Logo */}
+                        <div className="absolute top-6 left-6 flex items-center gap-2">
+                            <div className="p-2 rounded-xl bg-white/20 backdrop-blur flex items-center">
+                                <BookOpen className="h-6 w-6 text-primary drop-shadow" />
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="email" className="text-sm font-medium text-gray-900">Email</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    placeholder="Enter your university email"
-                                    value={formData.email}
-                                    onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                    className={`${errors.email ? 'border-destructive focus:border-destructive' : ''} text-gray-900 placeholder:text-primary/70 bg-white/80`}
-                                />
-                                {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="phone" className="text-sm font-medium text-gray-900">Phone</Label>
-                                <Input
-                                    id="phone"
-                                    type="text"
-                                    placeholder="Enter your phone number"
-                                    value={formData.phone}
-                                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                                    className={`${errors.phone ? 'border-destructive focus:border-destructive' : ''} text-gray-900 placeholder:text-primary/70 bg-white/80`}
-                                />
-                                {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
-                            </div>
-                            <div className="space-y-2 relative">
-                                <Label htmlFor="password" className="text-sm font-medium text-gray-900">Password</Label>
-                                <Input
-                                    id="password"
-                                    type={showPassword ? "text" : "password"}
-                                    placeholder="Enter your password"
-                                    value={formData.password}
-                                    onChange={e => setFormData({ ...formData, password: e.target.value })}
-                                    className={`${errors.password ? 'border-destructive focus:border-destructive' : ''} text-gray-900 placeholder:text-primary/70 bg-white/80 pr-10`}
-                                />
-                                <button
-                                    type="button"
-                                    tabIndex={-1}
-                                    className="absolute right-2 top-8 text-gray-500 hover:text-primary"
-                                    onClick={() => setShowPassword(v => !v)}
-                                >
-                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                </button>
-                                {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
-                            </div>
-                            <Button
-                                type="submit"
-                                className="w-full font-semibold rounded-full bg-gradient-to-r from-primary to-blue-600 text-white shadow-lg hover:from-blue-600 hover:to-primary transition-all duration-200"
-                                disabled={isLoading}
-                            >
-                                {isLoading ? "Signing up..." : "Sign Up"}
-                            </Button>
-                            {errors.api && <p className="text-sm text-destructive text-center">{errors.api}</p>}
-                        </form>
-                        <div className="text-center">
-                            <p className="text-sm text-gray-900">
-                                Already have an account?{" "}
-                                <Link to="/login" className="text-primary hover:underline font-medium">Sign in</Link>
-                            </p>
+                            <span className="text-lg font-extrabold tracking-tight text-primary drop-shadow" style={{ fontFamily: "Inter, Arial, sans-serif" }}>
+                                CampusConnect
+                            </span>
                         </div>
-                    </CardContent>
-                </Card>
-                <p className="text-center text-sm text-white/60">
-                    By signing up, you agree to our Terms of Service and Privacy Policy
-                </p>
+                        <Card className="bg-white/80 border-none shadow-none">
+                            <CardHeader className="text-center pb-0">
+                                <CardTitle className="text-2xl text-gray-900 font-bold">Sign Up</CardTitle>
+                                <p className="text-sm text-gray-700 mt-1">Join your university community</p>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <form onSubmit={handleSubmit} className="space-y-4">
+                                    {/* Username */}
+                                    <div className="space-y-1">
+                                        <Label htmlFor="username" className="text-sm text-gray-900">Username</Label>
+                                        <Input
+                                            id="username"
+                                            type="text"
+                                            placeholder="john_doe"
+                                            value={formData.username}
+                                            onChange={e => setFormData({ ...formData, username: e.target.value })}
+                                            className={`${errors.username ? 'border-destructive' : ''} text-gray-900 placeholder:text-gray-400 bg-white/80`}
+                                            required
+                                            disabled={isLoading}
+                                        />
+                                        {errors.username && <p className="text-sm text-destructive">{errors.username}</p>}
+                                    </div>
+                                    {/* Email */}
+                                    <div className="space-y-1">
+                                        <Label htmlFor="email" className="text-sm text-gray-900">Email</Label>
+                                        <Input
+                                            id="email"
+                                            type="email"
+                                            placeholder="you@example.edu"
+                                            value={formData.email}
+                                            onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                            className={`${errors.email ? 'border-destructive' : ''} text-gray-900 placeholder:text-gray-400 bg-white/80`}
+                                            required
+                                            disabled={isLoading}
+                                        />
+                                        {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+                                    </div>
+                                    {/* Phone */}
+                                    <div className="space-y-1">
+                                        <Label htmlFor="phone" className="text-sm text-gray-900">Phone</Label>
+                                        <Input
+                                            id="phone"
+                                            type="text"
+                                            placeholder="+91 98765 43210"
+                                            value={formData.phone}
+                                            onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                            className={`${errors.phone ? 'border-destructive' : ''} text-gray-900 placeholder:text-gray-400 bg-white/80`}
+                                            required
+                                            disabled={isLoading}
+                                        />
+                                        {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
+                                    </div>
+                                    {/* Password */}
+                                    <div className="space-y-1 relative">
+                                        <Label htmlFor="password" className="text-sm text-gray-900">Password</Label>
+                                        <Input
+                                            id="password"
+                                            type={showPassword ? "text" : "password"}
+                                            placeholder="••••••••"
+                                            value={formData.password}
+                                            onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                            className={`${errors.password ? 'border-destructive' : ''} text-gray-900 placeholder:text-gray-400 bg-white/80 pr-10`}
+                                            required
+                                            disabled={isLoading}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="absolute right-2 top-[36px] text-gray-500 hover:text-primary"
+                                            onClick={() => setShowPassword(v => !v)}
+                                            tabIndex={-1}
+                                            aria-label="Toggle password visibility"
+                                        >
+                                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        </button>
+                                        {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+                                    </div>
+                                    {/* Notification */}
+                                    {notification.message && (
+                                        <div
+                                            className={`rounded-md px-4 py-2 text-center font-medium transition-all duration-300 text-sm
+                                                ${notification.type === "success" ? "bg-green-100 text-green-700 border border-green-300" : "bg-red-100 text-red-700 border border-red-300"}`}
+                                        >
+                                            {notification.message}
+                                        </div>
+                                    )}
+                                    {/* Submit */}
+                                    <Button
+                                        type="submit"
+                                        className="w-full h-11 font-semibold rounded-md bg-gradient-to-r from-primary to-blue-600 text-white shadow-md hover:from-blue-600 hover:to-primary transition-all"
+                                        disabled={isLoading}
+                                    >
+                                        {isLoading ? "Signing up..." : "Sign Up"}
+                                    </Button>
+                                    {errors.api && <p className="text-sm text-destructive text-center">{errors.api}</p>}
+                                </form>
+                                {/* Redirect */}
+                                <div className="text-center pt-2">
+                                    <span className="text-gray-900 text-sm">Already have an account? </span>
+                                    <Link to="/login" className="text-primary hover:underline font-medium text-sm">Sign in</Link>
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <p className="text-center text-xs text-gray-600">
+                            By signing up, you agree to our Terms of Service and Privacy Policy
+                        </p>
+                    </div>
+                </div>
+                {/* Right - Illustration */}
+                <div className="hidden md:flex flex-1 items-center justify-center bg-[#f5f3ef] px-10">
+                    <img
+                        src="/assets/campus-ref.svg"
+                        alt="Campus students illustration"
+                        className="w-72 md:w-80 h-auto"
+                        draggable={false}
+                    />
+                </div>
             </div>
-        </AuthLayout>
+        </div>
     );
 }

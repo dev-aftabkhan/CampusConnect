@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from "react"
-import { CreatePost } from "@/components/feed/CreatePost"
-import { PostCard } from "@/components/feed/PostCard"
+import { CreatePost } from "@/pages/Feed/CreatePost";
+import { PostCard } from "@/pages/Feed/PostCard";
 import { PostSkeletonList } from "@/components/ui/post-skeleton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
