@@ -3,9 +3,9 @@ import { getToken } from './auth';
 
 const BASE_URL = 'http://20.192.25.27:4242/api';
 
-export async function getUserProfile(id: string) {
+export async function getOwnUserProfile() {
   const token = getToken();
-  const res = await axios.get(`${BASE_URL}/user/${id}/profile`, {
+  const res = await axios.get(`${BASE_URL}/users/userprofile`, {
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {})
     }

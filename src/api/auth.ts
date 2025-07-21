@@ -4,15 +4,12 @@ import type { User } from '@/types/user';
 // Always send cookies with requests
 axios.defaults.withCredentials = true;
 
-const BASE_URL = "http://20.192.25.27:4242/api/auth";
-const BASE_URL_USER = "http://20.192.25.27:4242/api/users";
-
 export async function login(identifier: string, password: string) {
   if (!identifier || !password) {
     throw new Error('Identifier and password are required');
   }
   // Login and get token + user
-  const res = await axios.post(`${BASE_URL}/login`, { identifier, password }, {
+  const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/auth/login`, { identifier, password }, {
     headers: { 'Content-Type': 'application/json' }
   });
   const { token, user } = res.data;
@@ -31,7 +28,7 @@ export function getToken() {
 }
 
 export async function register(username: string, email: string, phone: string, password: string) {
-  return axios.post(`${BASE_URL}/register`, { username, email, phone, password }, {
+  return axios.post(`${import.meta.env.VITE_API_BASE_URL}/auth/register`, { username, email, phone, password }, {
     withCredentials: true,
     headers: { 'Content-Type': 'application/json' }
   });
@@ -41,7 +38,7 @@ export async function register(username: string, email: string, phone: string, p
 export async function getCurrentUser(): Promise<User | null> {
   const token = getToken();
   try {
-    const res = await axios.get(`${BASE_URL_USER}/userprofile`, {
+    const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/users/userprofile`, {
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -54,7 +51,7 @@ export async function getCurrentUser(): Promise<User | null> {
 }
 
 export async function logout() {
-  return axios.post(`${BASE_URL}/logout`, {}, {
+  return axios.post(`${import.meta.env.VITE_API_BASE_URL}/auth/logout`, {}, {
     withCredentials: true,
     headers: { 'Content-Type': 'application/json' }
   });
