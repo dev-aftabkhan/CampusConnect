@@ -85,3 +85,8 @@ exports.getPostById = async (postId, userId) => {
 };
 
 
+//get recent posts
+exports.getRecentPosts = async (limit = 10) => {
+  return await Post.find().sort({ createdAt: -1 }).limit(limit).lean();
+};
+

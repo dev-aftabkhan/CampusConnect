@@ -118,7 +118,7 @@ exports.updateProfilePicture = async (req, res) => {
     const user = await userService.findUserById(req.user);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-     // ✅ Delete old image (if exists)
+     //Delete old image (if exists)
     if (user.profilePicture) {
       const imagePath = path.join(
         __dirname,

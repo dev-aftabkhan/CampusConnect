@@ -161,3 +161,12 @@ exports.getPopularPosts = async (req, res) => {
 };
 
 
+//get recent posts
+exports.getRecentPosts = async (req, res) => {
+  try {
+    const posts = await postService.getRecentPosts(10);
+    res.json({ posts });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
