@@ -2,7 +2,8 @@
 const userService = require('../services/userService');
 const { validationResult } = require('express-validator');
 const fs = require('fs');
-
+const Post = require('../models/Post');
+const User = require('../models/User');
  
 const path = require('path'); 
 
@@ -147,15 +148,25 @@ exports.updateProfilePicture = async (req, res) => {
   }
 };
 
-//get user profile by id after authentication
 exports.getUserProfile = async (req, res) => {
   const user_id = req.user;
   console.log('Fetching profile for user:', user_id);
+
   try {
-    const user = await userService.getprofilebyid(user_id); 
+    const user = await userService.getprofilebyid(user_id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
+
+    // 🔍 Get the user's posts
+    const posts = await Post.find({ user: user.user_id }).sort({ createdAt: -1 });
+
+    // 🧮 Get counts
+    const postCount = posts.length;
+    const followerCount = Array.isArray(user.follower) ? user.follower.length : 0;
+    const followingCount = Array.isArray(user.following) ? user.following.length : 0;
+
+    // ✅ Return full profile
     res.status(200).json({
       user: {
         user_id: user.user_id,
@@ -165,10 +176,14 @@ exports.getUserProfile = async (req, res) => {
         profilePicture: user.profilePicture,
         bio: user.bio,
         interests: user.interests,
+        postCount,
+        followerCount,
+        followingCount,
+        posts // full post list
       },
     });
   } catch (error) {
     console.error('Error fetching profile:', error);
     res.status(500).json({ message: 'Server error' });
   }
-}
+};

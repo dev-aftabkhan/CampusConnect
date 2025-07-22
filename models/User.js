@@ -48,14 +48,17 @@ const userSchema = new mongoose.Schema({
   follower: [{
     type: String,
     ref: 'User',
+    default: [],
   }],
   following: [{
     type: String,
     ref: 'User',
+    default: [],
   }],
   followRequests: [{ 
     type: String, 
     ref: 'User',
+    default: [],
   }]
    
 }, { timestamps: true },
