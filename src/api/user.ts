@@ -28,7 +28,7 @@ export async function updateProfilePicture(file: File) {
   const token = getToken();
   const formData = new FormData();
   formData.append('profilePicture', file);
-  const res = await axios.patch(`${BASE_URL}/users/profile-picture`, formData, {
+  const res = await axios.patch(`${BASE_URL}/users/profile-image`, formData, {
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {})
     }

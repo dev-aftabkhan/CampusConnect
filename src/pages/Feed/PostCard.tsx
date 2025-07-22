@@ -18,6 +18,7 @@ interface PostCardProps {
   }
   content: string
   image?: string
+  video?: string
   likes: number
   comments: number
   timestamp: string
