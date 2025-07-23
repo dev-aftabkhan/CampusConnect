@@ -64,62 +64,68 @@ export function CreatePost() {
     input.click();
   };
 
-  const handleSubmit = async (type: "image" | "video") => {
-    if (!content.trim() || !media) {
-      console.error("Content or media is missing");
+  const handleSubmit = async () => {
+    if (!content.trim() && media.length === 0) {
+      console.error("Either content or media is required.");
       return;
     }
 
+    // Clean and prepare postType from tags
+    const cleanedTags = tags
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+    const postType = cleanedTags.join(",");
+
+    if (!postType) {
+      alert("At least one tag is required.");
+      return;
+    }
+
+    // Validate video file size
+    const oversizedVideos = media.filter(
+      (file) => file.type.startsWith("video") && file.size > 30 * 1024 * 1024
+    );
+    if (oversizedVideos.length > 0) {
+      alert("Each video must be less than or equal to 30MB.");
+      return;
+    }
+
+    const hasVideo = media.some((file) => file.type.startsWith("video"));
+
     setIsPosting(true);
+
     try {
-      const mentions = tags.split(",").map((tag) => tag.trim()).filter(Boolean);
-      const formData = new FormData();
-      formData.append("message", content);
-      formData.append("mediaType", type);
-      formData.append("postType", "general");
-      mentions.forEach((mention) => formData.append("mentions[]", mention));
-      media.forEach((file) => formData.append("media", file));
-
-      // Log FormData contents
-      for (const [key, value] of formData.entries()) {
-        console.log(`${key}:`, value);
-      }
-
-      // Log headers
-      const headers = {
-        "Content-Type": "multipart/form-data",
-      };
-      console.log("Headers:", headers);
-
-      if (type === "image") {
-        console.log("Sending request to createPostWithImage");
-        await createPostWithImage({
-          message: content,
-          mediaType: "image",
-          postType: "general",
-          mentions,
-          media: media, // Pass the entire array of files
-        });
-      } else {
-        console.log("Sending request to createPostWithVideo");
+      if (hasVideo) {
+        // Send all media (image + video) using the video API
         await createPostWithVideo({
           message: content,
           mediaType: "video",
-          postType: "general",
-          media: media[0], // Pass only the first file
+          postType,
+          media: media, // array of mixed media
+        });
+      } else {
+        // Only text or images
+        await createPostWithImage({
+          message: content,
+          mediaType: "image",
+          postType,
+          mentions: [], // optional
+          media, // [] if text-only
         });
       }
 
       console.log("Post created successfully");
       setContent("");
       setTags("");
-      setMedia(null);
+      setMedia([]);
     } catch (error) {
-      console.error(`Failed to create ${type} post`, error);
+      console.error("Failed to create post", error);
     } finally {
       setIsPosting(false);
     }
   };
+
 
   return (
     <Card className="w-full shadow-md rounded-2xl border bg-white dark:bg-muted animate-slide-up">
@@ -152,6 +158,34 @@ export function CreatePost() {
               className="border-muted bg-muted/50 focus-visible:ring-1 focus-visible:ring-primary"
             />
 
+            {tags &&
+              tags
+                .split(",")
+                .map((tag, index) => tag.trim())
+                .filter(Boolean)
+                .map((tag, index) => (
+                  <Badge
+                    key={index}
+                    variant="outline"
+                    className="inline-flex items-center gap-1 mr-2 mt-2 text-sm"
+                  >
+                    #{tag}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = tags
+                          .split(",")
+                          .map((t) => t.trim())
+                          .filter((t) => t !== tag)
+                          .join(", ");
+                        setTags(updated);
+                      }}
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                ))}
+
             <div>
               <p className="text-xs text-muted-foreground">Popular tags:</p>
               <div className="flex flex-wrap gap-2 mt-1">
@@ -175,9 +209,32 @@ export function CreatePost() {
           </div>
         </div>
 
-        {media && media.length > 0 && (
-          <div className="mt-2 border rounded-lg p-2 bg-muted/30 text-sm text-muted-foreground">
-            Selected: <strong>{media.map(file => file.name).join(", ")}</strong>
+        {media.length > 0 && (
+          <div className="flex flex-wrap gap-3 mt-2">
+            {media.map((file, index) => {
+              const isImage = file.type.startsWith("image");
+              const url = URL.createObjectURL(file);
+
+              return (
+                <div key={index} className="relative w-24 h-24 border rounded overflow-hidden group">
+                  {isImage ? (
+                    <img src={url} alt={file.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <video src={url} className="w-full h-full object-cover" controls />
+                  )}
+
+                  <button
+                    type="button"
+                    className="absolute top-1 right-1 bg-black bg-opacity-50 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-opacity-80"
+                    onClick={() =>
+                      setMedia((prev) => prev.filter((_, i) => i !== index))
+                    }
+                  >
+                    ×
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -207,19 +264,13 @@ export function CreatePost() {
 
           <div className="flex gap-2">
             <Button
-              onClick={() => handleSubmit("image")}
-              disabled={!content.trim() || !media || isPosting}
+              onClick={handleSubmit}
+              disabled={isPosting || (!content.trim() && media.length === 0)}
               className="bg-primary text-white hover:bg-primary/90"
             >
-              {isPosting ? "Posting..." : "Share Photo"}
+              {isPosting ? "Posting..." : "Share"}
             </Button>
-            <Button
-              onClick={() => handleSubmit("video")}
-              disabled={!content.trim() || !media || isPosting}
-              className="bg-secondary text-white hover:bg-secondary/90"
-            >
-              {isPosting ? "Posting..." : "Share Video"}
-            </Button>
+
           </div>
         </div>
       </CardContent>

@@ -16,13 +16,25 @@ export async function createPostWithImage({ message, mediaType, postType, mentio
   });
 }
 
-export async function createPostWithVideo({ message, mediaType, postType, media }: { message: string; mediaType: string; postType: string; media: File }) {
+export async function createPostWithVideo({
+  message,
+  mediaType,
+  postType,
+  media,
+}: {
+  message: string;
+  mediaType: string;
+  postType: string;
+  media: File[]; // ✅ Updated to support multiple videos
+}) {
   const token = localStorage.getItem('token');
   const formData = new FormData();
   formData.append('message', message);
   formData.append('mediaType', mediaType);
   formData.append('postType', postType);
-  formData.append('media', media);
+
+  // ✅ Append each video file
+  media.forEach((file) => formData.append('media', file));
 
   return axios.post(`${import.meta.env.VITE_API_BASE_URL}/posts`, formData, {
     headers: {
@@ -30,6 +42,7 @@ export async function createPostWithVideo({ message, mediaType, postType, media 
     },
   });
 }
+
 
 export async function editPost(postId: string, { message, postType }: { message: string; postType: string }) {
   const token = localStorage.getItem('token');
