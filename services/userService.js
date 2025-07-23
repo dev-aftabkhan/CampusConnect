@@ -41,5 +41,5 @@ exports.updateuser = async (user, updateData) => {
 };
 
 exports.getprofilebyid = async (user_id) => {
-  return await User.findOne({ user_id }, 'user_id username email phone profilePicture bio interests');
+  return await User.findOne({ user_id}).select('user_id username email phone profilePicture bio interests follower following');
 };
