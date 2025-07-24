@@ -1,10 +1,14 @@
-const searchService = require('../services/searchService');
- 
-exports.search = async (req, res) => {
+const { searchAll } = require('../services/searchService');
+
+const searchController = async (req, res) => {
   try {
-    const results = await searchService.searchUsersAndPosts(req.query);
-    res.json(results);
+    const query = req.query.query;
+    const result = await searchAll(query);
+    res.status(200).json(result);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('Search Error:', err.message);
+    res.status(400).json({ message: err.message });
   }
 };
+
+module.exports = { searchController };

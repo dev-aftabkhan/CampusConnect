@@ -43,3 +43,10 @@ exports.updateuser = async (user, updateData) => {
 exports.getprofilebyid = async (user_id) => {
   return await User.findOne({ user_id}).select('user_id username email phone profilePicture bio interests follower following');
 };
+
+// get user by username
+exports.getUserByUsername = async (username) => {
+  const user = await User.findOne({ username }).select('-password');
+  if (!user) throw new Error('User not found');
+  return user;
+};

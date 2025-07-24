@@ -191,3 +191,15 @@ exports.getUserProfile = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+exports.fetchUserByUsername = async (req, res) => {
+  try {
+    const username = req.params.username;
+    const user = await userService.getUserByUsername(username);
+    res.status(200).json(user);
+  } catch (err) {
+    res.status(404).json({ message: err.message });
+  }
+};
+
+ 
