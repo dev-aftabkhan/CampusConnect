@@ -3,6 +3,7 @@ const app = require('./app');
 const http = require('http');
 const socketIO = require('socket.io');
 const socketHandler = require('./sockets/socketHandler');
+const notificationSocket = require('./sockets/notificationSocket');
  
 
 const server = http.createServer(app);
@@ -13,6 +14,7 @@ const io = socketIO(server, {
 });
 
 socketHandler(io);
+notificationSocket.notificationSocket(io);
  
 
 const PORT = process.env.PORT || 5000;

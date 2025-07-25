@@ -1,5 +1,7 @@
 const User = require('../models/User');
 const UserService = require('../services/userService');
+const { triggerNotification } = require('../sockets/notificationSocket');
+
 
 exports.sendFollowRequest = async (fromUserId, toUserId) => {
   const receiver = await UserService.findUserById(toUserId);
@@ -17,6 +19,13 @@ exports.sendFollowRequest = async (fromUserId, toUserId) => {
 
   receiver.followRequests.push(fromUserId);
   await receiver.save();
+
+  // 🔔 Trigger follow request notification
+  await triggerNotification({
+    user: toUserId,
+    type: 'follow_request',
+    from: fromUserId
+  });
 };
 exports.getIncomingRequests = async (userId) => {
   const user = await UserService.findUserById(userId);

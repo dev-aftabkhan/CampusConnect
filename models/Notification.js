@@ -1,15 +1,15 @@
 const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema({
-  notification_id: { type: String, unique: true },
+  notification_id: { type: String, unique: true, required: true },
   user: { type: String, ref: 'User', required: true }, // receiver
   type: {
     type: String,
     enum: ['like', 'comment', 'mention', 'message', 'follow_request', 'suggestion'],
     required: true
   },
-  from: { type: String, ref: 'User' }, // who triggered it
-  postId: { type: String, ref: 'Post' }, // optional for post-related
+  from: { type: String, ref: 'User' },
+  postId: { type: String, ref: 'Post' },
   commentId: { type: String },
   message: { type: String },
   read: { type: Boolean, default: false },
@@ -18,4 +18,3 @@ const notificationSchema = new mongoose.Schema({
 
 
 module.exports = mongoose.model('Notification', notificationSchema);
-

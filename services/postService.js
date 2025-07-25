@@ -1,6 +1,9 @@
 const Post = require('../models/Post');
 const mongoose = require('mongoose');
-const { Types } = mongoose;
+const { types } = require('mongoose');
+const { triggerNotification } = require('../sockets/notificationSocket');
+
+ 
 
 
 exports.createPost = async (data) => {
@@ -21,8 +24,22 @@ exports.deletePost = async (postId, userId) => {
 
 exports.likePost = async (postId, userId) => {
   const post = await Post.findOne({ post_id: postId });
-  if (!post.likes.includes(userId)) post.likes.push(userId);
-  await post.save();
+  if (!post.likes.includes(userId)){
+     post.likes.push(userId);
+     console.log("post.likes:", post.likes);
+    await post.save();
+
+     
+      console.log("nofication triggered");
+      await triggerNotification({
+        user: post.user,          // Receiver
+        type: 'like',
+        from: userId,
+        postId: post.post_id
+      });
+    
+
+  }
   return post;
 };
 
@@ -38,6 +55,33 @@ exports.addComment = async (postId, userId, text, mentions) => {
   const comment_id = new mongoose.Types.ObjectId().toString();
   post.comments.push({ user: userId, text, mentions, comment_id });
   await post.save();
+
+  // Notify post owner (unless commenting on own post)
+  if (post.user !== userId) {
+    await triggerNotification({
+      user: post.user,
+      type: 'comment',
+      from: userId,
+      postId: post.post_id,
+      comment_id
+    });
+  }
+
+  // Notify mentions (skip duplicates and post owner)
+  const uniqueMentions = [...new Set(mentions)];
+  for (const mention of uniqueMentions) {
+    if (mention !== userId && mention !== post.user) {
+      await triggerNotification({
+        user: mention,
+        type: 'mention',
+        from: userId,
+        postId: post.post_id,
+        comment_id
+      });
+    }
+  }
+
+
   return post;
 };
 

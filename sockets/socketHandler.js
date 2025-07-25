@@ -2,7 +2,8 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Message = require('../models/Message');
 const { mongo, default: mongoose } = require('mongoose');
-const Notification = require('../models/Notification');
+const { triggerNotification } = require('./notificationSocket'); 
+ 
 //const { encrypt, decrypt } = require('../utils/encryptor');
 
 const connectedUsers = new Map();
@@ -52,6 +53,14 @@ function socketHandler(io) {
         const targetSocket = connectedUsers.get(to);
         if (targetSocket) {
           targetSocket.emit('receive_message', message);
+        }else{
+          // ✅ If offline, send notification
+          await triggerNotification({
+            user: to,
+            type: 'message',
+            from: socket.user.user_id,
+            message: text
+          });
         }
 
       } catch (err) {

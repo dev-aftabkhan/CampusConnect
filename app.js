@@ -7,7 +7,8 @@ const userRoutes = require('./routes/userRoutes');
 const followRoutes = require('./routes/followRoutes');
 const postRoutes = require('./routes/postRoutes');
 const searchRoutes = require('./routes/searchRoutes');
-const messageRoutes = require('./routes/message');
+const messageRoutes = require('./routes/message'); 
+const notifyRoutes = require('./routes/notificationRoutes');
   
 
 dotenv.config();
@@ -29,6 +30,7 @@ app.use('/api/follow', followRoutes);
 app.use('/api/posts', postRoutes);
 app.use ('/api/search', searchRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/notifications', notifyRoutes);
 
  
 
