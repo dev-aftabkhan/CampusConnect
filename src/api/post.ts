@@ -21,28 +21,35 @@ export async function createPostWithVideo({
   mediaType,
   postType,
   media,
+  onProgress,
 }: {
   message: string;
   mediaType: string;
   postType: string;
-  media: File[]; // ✅ Updated to support multiple videos
+  media: File[];
+  onProgress?: (percent: number) => void;
 }) {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
   const formData = new FormData();
-  formData.append('message', message);
-  formData.append('mediaType', mediaType);
-  formData.append('postType', postType);
 
-  // ✅ Append each video file
-  media.forEach((file) => formData.append('media', file));
+  formData.append("message", message);
+  formData.append("mediaType", mediaType);
+  formData.append("postType", postType);
+  formData.append("media", media[0]); // Send only one video file
 
   return axios.post(`${import.meta.env.VITE_API_BASE_URL}/posts`, formData, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
+    onUploadProgress: (progressEvent) => {
+      if (progressEvent.total) {
+        const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        if (onProgress) onProgress(percent);
+        console.log(`Upload Progress: ${percent}%`);
+      }
+    },
   });
 }
-
 
 export async function editPost(postId: string, { message, postType }: { message: string; postType: string }) {
   const token = localStorage.getItem('token');

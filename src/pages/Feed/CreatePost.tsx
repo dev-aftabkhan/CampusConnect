@@ -39,26 +39,23 @@ export function CreatePost() {
     "Social"
   ];
 
-  const handleFixPostType = () => {
-    const cleanedTags = tags
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter(Boolean)
-      .join(", ");
-    setTags(cleanedTags);
-  };
-
   const handleMediaUpload = (type: "image" | "video") => {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = type === "image" ? "image/*" : "video/*";
-    input.multiple = type === "image"; // Allow multiple files for images
+    input.accept = type === "image" ? "image/*" : "video/mp4";
+    input.multiple = type === "image";
     input.onchange = (e) => {
       const files = Array.from((e.target as HTMLInputElement).files || []);
+
       if (type === "image") {
-        setMedia((prevMedia) => [...prevMedia, ...files]); // Append new files to the existing array
+        setMedia((prevMedia) => [...prevMedia, ...files]);
       } else if (files.length > 0) {
-        setMedia([files[0]]); // Only allow one video file
+        const selectedFile = files[0];
+        if (selectedFile.type !== "video/mp4") {
+          alert("Only .mp4 videos are allowed.");
+          return;
+        }
+        setMedia([selectedFile]);
       }
     };
     input.click();
@@ -66,66 +63,65 @@ export function CreatePost() {
 
   const handleSubmit = async () => {
     if (!content.trim() && media.length === 0) {
-      console.error("Either content or media is required.");
+      alert("Please enter content or add media.");
       return;
     }
 
-    // Clean and prepare postType from tags
     const cleanedTags = tags
       .split(",")
       .map((tag) => tag.trim())
       .filter(Boolean);
-    const postType = cleanedTags.join(",");
 
+    const postType = cleanedTags.join(",");
     if (!postType) {
       alert("At least one tag is required.");
       return;
     }
 
-    // Validate video file size
-    const oversizedVideos = media.filter(
-      (file) => file.type.startsWith("video") && file.size > 30 * 1024 * 1024
+    const videoFiles = media.filter(
+      (file) => file.type === "video/mp4"
     );
-    if (oversizedVideos.length > 0) {
+
+    if (videoFiles.some((file) => file.size > 30 * 1024 * 1024)) {
       alert("Each video must be less than or equal to 30MB.");
       return;
     }
 
-    const hasVideo = media.some((file) => file.type.startsWith("video"));
+    const hasVideo = videoFiles.length > 0;
+
+    console.log("Media:", media.map(f => ({ name: f.name, type: f.type })));
+    console.log("Calling:", hasVideo ? "createPostWithVideo" : "createPostWithImage");
 
     setIsPosting(true);
 
     try {
       if (hasVideo) {
-        // Send all media (image + video) using the video API
         await createPostWithVideo({
           message: content,
           mediaType: "video",
           postType,
-          media: media, // array of mixed media
+          media
         });
       } else {
-        // Only text or images
         await createPostWithImage({
           message: content,
           mediaType: "image",
           postType,
-          mentions: [], // optional
-          media, // [] if text-only
+          mentions: [],
+          media
         });
       }
 
-      console.log("Post created successfully");
       setContent("");
       setTags("");
       setMedia([]);
+      console.log("Post created successfully.");
     } catch (error) {
       console.error("Failed to create post", error);
     } finally {
       setIsPosting(false);
     }
   };
-
 
   return (
     <Card className="w-full shadow-md rounded-2xl border bg-white dark:bg-muted animate-slide-up">
@@ -161,7 +157,7 @@ export function CreatePost() {
             {tags &&
               tags
                 .split(",")
-                .map((tag, index) => tag.trim())
+                .map((tag) => tag.trim())
                 .filter(Boolean)
                 .map((tag, index) => (
                   <Badge
@@ -222,7 +218,6 @@ export function CreatePost() {
                   ) : (
                     <video src={url} className="w-full h-full object-cover" controls />
                   )}
-
                   <button
                     type="button"
                     className="absolute top-1 right-1 bg-black bg-opacity-50 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-opacity-80"
@@ -270,7 +265,6 @@ export function CreatePost() {
             >
               {isPosting ? "Posting..." : "Share"}
             </Button>
-
           </div>
         </div>
       </CardContent>

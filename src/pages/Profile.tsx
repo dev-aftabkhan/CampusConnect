@@ -5,12 +5,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { PostCard } from "@/pages/Feed/PostCard"
 import { User, Calendar, BookOpen, Users, MessageSquare, Edit, Loader2 } from "lucide-react"
 import { getCurrentUser } from "@/api/auth"
-import { updateProfile } from "@/api/user"
-import { updateProfilePicture } from "@/api/user"
-import { Phone } from "lucide-react";
+import { updateProfile, updateProfilePicture } from "@/api/user"
+import { getFollowers, getFollowing } from "@/api/user"
+import { Phone } from "lucide-react"
 
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false)
@@ -20,6 +21,11 @@ export default function Profile() {
   const [toastMsg, setToastMsg] = useState("")
   const [showImageEditor, setShowImageEditor] = useState(false)
   const [preview, setPreview] = useState<string | null>(null)
+
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [dialogTitle, setDialogTitle] = useState("")
+  const [dialogType, setDialogType] = useState<"followers" | "following">("followers") // ✅ FIXED
+  const [userList, setUserList] = useState<any[]>([])
 
   useEffect(() => {
     async function fetchProfile() {
@@ -45,11 +51,8 @@ export default function Profile() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Show preview
     const reader = new FileReader()
-    reader.onloadend = () => {
-      setPreview(reader.result as string)
-    }
+    reader.onloadend = () => setPreview(reader.result as string)
     reader.readAsDataURL(file)
 
     setUploading(true)
@@ -69,6 +72,22 @@ export default function Profile() {
       setUploading(false)
     }
   }
+
+  const handleOpenList = async (type: "followers" | "following") => {
+    if (!profileData?.user_id) return;
+    setDialogTitle(type === "followers" ? "Followers" : "Following");
+    setDialogOpen(true);
+    try {
+      const data =
+        type === "followers"
+          ? await getFollowers(profileData.user_id)
+          : await getFollowing(profileData.user_id);
+      setUserList(type === "followers" ? data.followers : data.following); // ✅ THIS LINE
+    } catch (err) {
+      console.error("Failed to fetch list", err);
+      setUserList([]);
+    }
+  };  
 
   if (loading) {
     return <div className="max-w-4xl mx-auto py-12 text-center text-lg">Loading profile...</div>
@@ -100,9 +119,7 @@ export default function Profile() {
           <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
             {/* Avatar */}
             <div className="relative group">
-              <Avatar
-                className="h-24 w-24 border-4 border-background group-hover:opacity-80 transition-opacity duration-300"
-              >
+              <Avatar className="h-24 w-24 border-4 border-background group-hover:opacity-80 transition-opacity duration-300">
                 <AvatarImage src={profileData.profilePicture || "/placeholder.svg"} alt={profileData.username} />
                 <AvatarFallback className="text-2xl">{profileData.username?.charAt(0)}</AvatarFallback>
               </Avatar>
@@ -157,90 +174,79 @@ export default function Profile() {
 
           {/* Edit Profile Section */}
           {isEditing && (
-            <div className="mt-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground">Username</label>
+            <div className="mt-6 grid gap-5 sm:grid-cols-2">
+              {/* Username */}
+              <div className="col-span-full">
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Username</label>
                 <input
                   type="text"
                   value={profileData.username}
                   onChange={(e) => setProfileData({ ...profileData, username: e.target.value })}
-                  className="w-full mt-1 px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-primary"
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground">Phone</label>
+              {/* Phone */}
+              <div className="col-span-full">
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Phone</label>
                 <input
                   type="text"
                   value={profileData.phone || ""}
                   onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                  className="w-full mt-1 px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-primary"
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground">Bio</label>
+              {/* Bio */}
+              <div className="col-span-full">
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Bio</label>
                 <Textarea
                   value={profileData.bio || ""}
                   onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
                   placeholder="Tell us something about you..."
-                  className="w-full mt-1"
+                  className="w-full"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground">Interests</label>
-                <input
-                  type="text"
-                  placeholder="Add interests separated by commas"
-                  onBlur={(e) => {
-                    const interests = e.target.value.split(',').map((interest) => interest.trim());
-                    setProfileData({ ...profileData, interests });
+              <div className="col-span-full">
+                <Button
+                  variant="default"
+                  onClick={async () => {
+                    try {
+                      await updateProfile({
+                        username: profileData.username,
+                        email: profileData.email,
+                        phone: profileData.phone || "",
+                        bio: profileData.bio || "",
+                      })
+                      showToast("Profile updated successfully")
+                      setIsEditing(false)
+                    } catch (err) {
+                      console.error(err)
+                      showToast("Failed to update profile")
+                    }
                   }}
-                  className="w-full mt-1 px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-primary"
-                />
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {profileData.interests?.map((interest, index) => (
-                    <Badge key={index} variant="outline" className="bg-muted text-xs px-2 py-1 rounded-full">
-                      {interest}
-                    </Badge>
-                  ))}
-                </div>
+                >
+                  Save Changes
+                </Button>
               </div>
-
-              <Button
-                variant="default"
-                onClick={async () => {
-                  try {
-                    await updateProfile({
-                      username: profileData.username,
-                      email: profileData.email,
-                      phone: profileData.phone || "",
-                      bio: profileData.bio || "",
-                    });
-                    showToast("Profile updated successfully");
-                    setIsEditing(false);
-                  } catch (err) {
-                    console.error(err);
-                    showToast("Failed to update profile");
-                  }
-                }}
-              >
-                Save Changes
-              </Button>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Stats */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {[
-          { label: "Posts", value: stats.posts, icon: MessageSquare },
-          { label: "Followers", value: stats.followers, icon: Users },
-          { label: "Following", value: stats.following, icon: User },
+          { label: "Posts", value: stats.posts, icon: MessageSquare, onClick: null },
+          { label: "Followers", value: stats.followers, icon: Users, onClick: () => handleOpenList("followers") },
+          { label: "Following", value: stats.following, icon: User, onClick: () => handleOpenList("following") },
         ].map((stat, index) => (
-          <Card key={index} className="text-center p-4 hover:shadow-lg transition-shadow">
+          <Card
+            key={index}
+            className={`text-center p-4 hover:shadow-lg transition-shadow ${stat.onClick ? "cursor-pointer" : ""}`}
+            onClick={stat.onClick || undefined}
+          >
             <stat.icon className="h-6 w-6 mx-auto text-primary mb-1" />
             <div className="text-xl font-semibold">{stat.value}</div>
             <p className="text-sm text-muted-foreground">{stat.label}</p>
@@ -291,6 +297,54 @@ export default function Profile() {
           <Card><CardContent className="p-6 text-center text-muted-foreground">Your connections will appear here.</CardContent></Card>
         </TabsContent>
       </Tabs>
+
+      {/* Followers Dialog */}
+      <Dialog open={dialogOpen && dialogTitle === "Followers"} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Followers</DialogTitle>
+          </DialogHeader>
+          {userList.length > 0 ? (
+            <div className="flex flex-col gap-3">
+              {userList.map((user: any, index: number) => (
+                <div key={index} className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={user.profilePicture || "/placeholder.svg"} alt={user.username} />
+                    <AvatarFallback>{user.username?.[0] || "U"}</AvatarFallback>
+                  </Avatar>
+                  <span className="font-medium text-sm">{user.username}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground">No followers found.</p>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Following Dialog */}
+      <Dialog open={dialogOpen && dialogTitle === "Following"} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Following</DialogTitle>
+          </DialogHeader>
+          {userList.length > 0 ? (
+            <div className="flex flex-col gap-3">
+              {userList.map((user: any, index: number) => (
+                <div key={index} className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={user.profilePicture || "/placeholder.svg"} alt={user.username} />
+                    <AvatarFallback>{user.username?.[0] || "U"}</AvatarFallback>
+                  </Avatar>
+                  <span className="font-medium text-sm">{user.username}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground">No following found.</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
