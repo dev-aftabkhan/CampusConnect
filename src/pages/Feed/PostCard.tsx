@@ -6,7 +6,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Heart, MessageSquare, Share, MoreHorizontal, Bookmark } from "lucide-react"
+import { Heart, MessageSquare, MoreHorizontal } from "lucide-react"
+
+import { likePost, unlikePost, addComment } from "@/api/post" // update path if needed
 
 interface PostCardProps {
   id: string
@@ -17,8 +19,8 @@ interface PostCardProps {
     major: string
   }
   content: string
-  image?: string
-  video?: string
+  images?: string[]
+  videos?: string[]
   likes: number
   comments: number
   timestamp: string
@@ -27,9 +29,11 @@ interface PostCardProps {
 }
 
 export function PostCard({
+  id,
   author,
   content,
-  image,
+  images = [],
+  videos = [],
   likes,
   comments,
   timestamp,
@@ -40,14 +44,45 @@ export function PostCard({
   const [likeCount, setLikeCount] = useState(likes)
   const [showComments, setShowComments] = useState(false)
   const [newComment, setNewComment] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [currentIndex, setCurrentIndex] = useState(0)
 
-  const handleLike = () => {
-    setLiked(!liked)
-    setLikeCount(liked ? likeCount - 1 : likeCount + 1)
+  const mediaList = [
+    ...images.map((src) => ({ type: "image", src })),
+    ...videos.map((src) => ({ type: "video", src }))
+  ]
+
+  const handleLike = async () => {
+    try {
+      if (liked) {
+        await unlikePost(id)
+        setLikeCount((prev) => prev - 1)
+      } else {
+        await likePost(id)
+        setLikeCount((prev) => prev + 1)
+      }
+      setLiked(!liked)
+    } catch (error) {
+      console.error("Failed to like/unlike post:", error)
+    }
   }
 
-  const handleComment = () => {
+  const handleCommentToggle = () => {
     setShowComments(!showComments)
+  }
+
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return
+    setIsLoading(true)
+    try {
+      await addComment(id, { text: newComment, mentions: [] })
+      setNewComment("")
+      // Optional: refresh comment list or increment comment count
+    } catch (error) {
+      console.error("Failed to add comment:", error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -65,7 +100,7 @@ export function PostCard({
             </Link>
             <div className="flex-1 min-w-0">
               <div className="flex items-center space-x-2 mb-1">
-                <Link 
+                <Link
                   to={`/profile/${author.name.toLowerCase().replace(' ', '-')}`}
                   className="font-semibold text-foreground hover:text-primary transition-colors text-sm truncate"
                 >
@@ -86,25 +121,68 @@ export function PostCard({
         </div>
       </CardHeader>
 
-      <CardContent className="px-6 pb-4">
-        <p className="text-sm leading-relaxed text-foreground mb-4">{content}</p>
-        
-        {image && (
-          <div className="rounded-lg overflow-hidden mb-4 border border-border">
-            <img
-              src={image}
-              alt="Post content"
-              className="w-full h-auto object-cover max-h-96"
-            />
+      {/* Media Carousel */}
+      {mediaList.length > 0 && (
+        <div className="relative w-full bg-black">
+          <div className="overflow-hidden max-h-[500px]">
+            {mediaList.map((media, index) => (
+              <div
+                key={index}
+                className={`transition-opacity duration-300 ease-in-out ${
+                  index === currentIndex ? "opacity-100 block" : "opacity-0 hidden"
+                }`}
+              >
+                {media.type === "image" ? (
+                  <img
+                    src={media.src}
+                    alt={`Media ${index + 1}`}
+                    className="w-full h-auto object-cover max-h-[500px]"
+                  />
+                ) : (
+                  <video
+                    src={media.src}
+                    controls
+                    className="w-full h-auto object-cover max-h-[500px]"
+                  />
+                )}
+              </div>
+            ))}
           </div>
-        )}
+
+          {mediaList.length > 1 && (
+            <>
+              <button
+                onClick={() => setCurrentIndex((prev) => Math.max(prev - 1, 0))}
+                disabled={currentIndex === 0}
+                className="absolute top-1/2 left-2 transform -translate-y-1/2 bg-black/40 text-white px-2 py-1 rounded-full disabled:opacity-30"
+              >
+                ‹
+              </button>
+              <button
+                onClick={() => setCurrentIndex((prev) => Math.min(prev + 1, mediaList.length - 1))}
+                disabled={currentIndex === mediaList.length - 1}
+                className="absolute top-1/2 right-2 transform -translate-y-1/2 bg-black/40 text-white px-2 py-1 rounded-full disabled:opacity-30"
+              >
+                ›
+              </button>
+              <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-md">
+                {currentIndex + 1} / {mediaList.length}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Post Content */}
+      <CardContent className="px-6 pb-4 pt-4">
+        <p className="text-sm leading-relaxed text-foreground mb-4">{content}</p>
 
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-4">
             {tags.map((tag, index) => (
-              <Badge 
-                key={index} 
-                variant="secondary" 
+              <Badge
+                key={index}
+                variant="secondary"
                 className="text-xs px-2.5 py-1 bg-accent/10 text-accent-foreground hover:bg-accent/20 cursor-pointer transition-colors"
               >
                 #{tag}
@@ -115,51 +193,33 @@ export function PostCard({
       </CardContent>
 
       <Separator className="mx-6" />
-      
+
+      {/* Footer: Like, Comment */}
       <CardFooter className="px-6 py-3">
         <div className="w-full space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLike}
-                className={`h-9 px-3 text-sm font-medium rounded-md transition-all ${
-                  liked 
-                    ? 'text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-950 dark:hover:bg-red-900' 
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                }`}
-              >
-                <Heart className={`h-4 w-4 mr-2 ${liked ? 'fill-current' : ''}`} />
-                Like ({likeCount})
-              </Button>
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleComment}
-                className="h-9 px-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-all"
-              >
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Comment ({comments})
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-9 px-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-all"
-              >
-                <Share className="h-4 w-4 mr-2" />
-                Share
-              </Button>
-            </div>
-            
+          <div className="flex items-center space-x-1">
             <Button
               variant="ghost"
               size="sm"
-              className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-all"
+              onClick={handleLike}
+              className={`h-9 px-3 text-sm font-medium rounded-md transition-all ${
+                liked
+                  ? 'text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-950 dark:hover:bg-red-900'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              }`}
             >
-              <Bookmark className="h-4 w-4" />
+              <Heart className={`h-4 w-4 mr-2 ${liked ? 'fill-current' : ''}`} />
+              Like ({likeCount})
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCommentToggle}
+              className="h-9 px-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-all"
+            >
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Comment ({comments})
             </Button>
           </div>
 
@@ -177,12 +237,13 @@ export function PostCard({
                     onChange={(e) => setNewComment(e.target.value)}
                     className="text-sm border-border focus:border-primary"
                   />
-                  <Button 
-                    size="sm" 
-                    disabled={!newComment.trim()}
+                  <Button
+                    size="sm"
+                    onClick={handleAddComment}
+                    disabled={!newComment.trim() || isLoading}
                     className="px-4 bg-primary hover:bg-primary-hover text-primary-foreground"
                   >
-                    Post
+                    {isLoading ? "Posting..." : "Post"}
                   </Button>
                 </div>
               </div>
