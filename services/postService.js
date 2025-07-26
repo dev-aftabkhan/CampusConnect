@@ -134,3 +134,9 @@ exports.getRecentPosts = async (limit = 10) => {
   return await Post.find().sort({ createdAt: -1 }).limit(limit).lean();
 };
 
+// get is post liked by user
+exports.isPostLiked = async (postId, userId) => {
+  const post = await Post.findOne({ post_id: postId });
+  if (!post) throw new Error('Post not found');
+  return post.likes.includes(userId);
+};

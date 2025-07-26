@@ -170,3 +170,16 @@ exports.getRecentPosts = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+// get is post liked by user
+exports.isPostLiked = async (req, res) => {
+  try {
+    const postId = req.params.id;
+    const userId = req.user;
+
+    const isLiked = await postService.isPostLiked(postId, userId);
+    res.json({ isLiked });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};

@@ -16,6 +16,15 @@ exports.getProfile = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
+
+    // 🔍 Get the user's posts
+    const posts = await Post.find({ user: user.user_id }).sort({ createdAt: -1 });
+
+    // 🧮 Get counts
+    const postCount = posts.length;
+    const followerCount = Array.isArray(user.follower) ? user.follower.length : 0;
+    const followingCount = Array.isArray(user.following) ? user.following.length : 0;
+
     res.status(200).json({
       user: {
         user_id: user.user_id,
@@ -25,6 +34,10 @@ exports.getProfile = async (req, res) => {
         profilePicture: user.profilePicture,
         bio: user.bio,
         interests: user.interests,
+        postCount,
+        followerCount,
+        followingCount,
+        posts 
       },
     });
   } catch (error) {
