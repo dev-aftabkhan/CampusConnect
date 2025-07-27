@@ -124,6 +124,7 @@ exports.addComment = async (req, res) => {
     // Check if the current user is a follower or the owner
     const isFollower = postOwner.follower.includes(userId); // <-- assuming array of strings
     const isOwner = postOwner.user_id === userId;
+    
 
     if (!isFollower && !isOwner) {
       return res.status(403).json({ message: 'Only followers can comment' });

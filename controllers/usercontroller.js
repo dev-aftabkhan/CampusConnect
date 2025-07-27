@@ -10,9 +10,11 @@ const path = require('path');
 
 exports.getProfile = async (req, res) => {
   const user_id = req.params.id;
+  const currentUser = req.user; // Assuming current user is stored in req.user
   console.log('Fetching profile for user:', user_id);
   try {
     const user = await userService.getprofilebyid(user_id); 
+    const currentUserData = await userService.getprofilebyid(currentUser);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -24,6 +26,9 @@ exports.getProfile = async (req, res) => {
     const postCount = posts.length;
     const followerCount = Array.isArray(user.follower) ? user.follower.length : 0;
     const followingCount = Array.isArray(user.following) ? user.following.length : 0;
+    // get mutuals count and users
+    const mutuals = user.follower.filter(f => currentUserData.following.includes(f));
+    const mutualCount = mutuals.length || 0;
 
     res.status(200).json({
       user: {
@@ -37,7 +42,9 @@ exports.getProfile = async (req, res) => {
         postCount,
         followerCount,
         followingCount,
-        posts 
+        posts,
+        mutualCount,
+        mutuals,
       },
     });
   } catch (error) {
