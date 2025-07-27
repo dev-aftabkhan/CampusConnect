@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getToken } from './auth';
 
 export async function createPostWithImage({
   message,
@@ -33,31 +34,26 @@ export async function createPostWithVideo({
   mediaType,
   postType,
   media,
-  onProgress,
 }: {
   message: string;
   mediaType: string;
   postType: string;
   media: File[];
-  onProgress?: (percent: number) => void;
 }) {
   const token = localStorage.getItem('token');
   const formData = new FormData();
+
   formData.append('message', message);
   formData.append('mediaType', mediaType);
   formData.append('postType', postType);
-  formData.append('media', media[0]);
+  // Append only one video file (first one)
+  if (media.length > 0) {
+    formData.append('media', media[0]); // video
+  }
 
   return axios.post(`${import.meta.env.VITE_API_BASE_URL}/posts`, formData, {
     headers: {
       Authorization: `Bearer ${token}`,
-    },
-    onUploadProgress: (progressEvent) => {
-      if (progressEvent.total) {
-        const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-        if (onProgress) onProgress(percent);
-        console.log(`Upload Progress: ${percent}%`);
-      }
     },
   });
 }
@@ -149,6 +145,25 @@ export async function getPopularPosts() {
 export async function getRecentPosts() {
   const token = localStorage.getItem('token');
   return axios.get(`${import.meta.env.VITE_API_BASE_URL}/posts/recentposts`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+export async function searchPostsByTag(query: string) {
+  const token = localStorage.getItem('token');
+  const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/search?query=${encodeURIComponent(query)}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return res.data.posts; 
+}
+
+export async function getPostById(postId: string) {
+  const token = localStorage.getItem('token');
+  return axios.get(`${import.meta.env.VITE_API_BASE_URL}/posts/${postId}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },

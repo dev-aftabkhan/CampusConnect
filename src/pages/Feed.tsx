@@ -1,37 +1,49 @@
-import React, { useState, useEffect, useCallback } from "react"
-import axios from "axios"
-import { CreatePost } from "@/pages/Feed/CreatePost"
-import { PostCard } from "@/pages/Feed/PostCard"
-import { PostSkeletonList } from "@/components/ui/post-skeleton"
+import React, { useState, useEffect, useCallback } from "react";
+import axios from "axios";
+import { CreatePost } from "@/pages/Feed/CreatePost";
+import { PostCard } from "@/components/PostCard";
+import { PostSkeletonList } from "@/components/ui/post-skeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TrendingUp, Filter, Clock, Flame } from "lucide-react";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
-import {
-  TrendingUp,
-  Filter,
-} from "lucide-react"
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
+type PostWithExtras = {
+  post_id: string;
+  message: string;
+  media: string[];
+  mediaType: string;
+  postType: string;
+  user: string;
+  likes: string[];
+  comments: any[]; // or more specific if you have a type
+  author: {
+    username: string;
+    profilePicture: string | null;
+  };
+  likedByUser: boolean;
+};
+
+import { getUserProfileById } from "@/api/user"; // ✅ make sure this exists
+const userData = JSON.parse(localStorage.getItem("user") || "{}");
+const currentUserId = userData.id || "";
 
 export default function Feed() {
-  const [sortBy, setSortBy] = useState<"recent" | "popular">("recent")
-  const [posts, setPosts] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [sortBy, setSortBy] = useState<"recent" | "popular">("recent");
+  const [posts, setPosts] = useState<PostWithExtras[]>([]);
+
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchPosts = useCallback(async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const url =
-        sortBy === "recent"
-          ? "/posts/recentposts"
-          : "/posts/popular"
+      const url = sortBy === "recent" ? "/posts/recentposts" : "/posts/popular";
 
       const resp = await axios.get(
         `${import.meta.env.VITE_API_BASE_URL}${url}`,
@@ -40,21 +52,71 @@ export default function Feed() {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
-      )
+      );
 
-      // Always access resp.data.posts, as your API wraps data like: { message, posts }
-      const items = resp.data?.posts || []
-      setPosts(items)
+      const items = resp.data?.posts || [];
+      const authorCache = new Map<string, any>();
+
+      const getAuthorData = async (userId: string) => {
+        if (!userId) {
+          return { username: "Unknown", profilePicture: null };
+        }
+
+        if (authorCache.has(userId)) {
+          return authorCache.get(userId);
+        }
+
+        try {
+          const res = await getUserProfileById(userId);
+          const user = res?.user;
+          const data = {
+            username: user?.username || "Unknown",
+            profilePicture: user?.profilePicture || null,
+          };
+          authorCache.set(userId, data);
+          return data;
+        } catch (error) {
+          console.error(`Failed to fetch profile for user: ${userId}`, error);
+          const fallback = { username: "Unknown", profilePicture: null };
+          authorCache.set(userId, fallback);
+          return fallback;
+        }
+      };
+
+      const postsWithAuthor = await Promise.all(
+        items.map(async (post: any) => {
+          post.author = await getAuthorData(post.user);
+
+          if (Array.isArray(post.comments)) {
+            post.comments = await Promise.all(
+              post.comments.map(async (comment: any) => ({
+                ...comment,
+                author: await getAuthorData(comment.user),
+              }))
+            );
+          }
+          // ✅ Enrich with likedByUser flag
+          const likedByUser = post.likes?.includes(currentUserId);
+          post.likedByUser = likedByUser;
+
+          return {
+            ...post,
+            likedByUser,
+          };
+        })
+      );
+
+      setPosts(postsWithAuthor);
     } catch (err) {
-      console.error("Error fetching posts:", err)
+      console.error("Error fetching posts:", err);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [sortBy])
+  }, [sortBy, currentUserId]);
 
   useEffect(() => {
-    fetchPosts()
-  }, [fetchPosts])
+    fetchPosts();
+  }, [fetchPosts]);
 
   return (
     <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -62,29 +124,35 @@ export default function Feed() {
       <div className="lg:col-span-3 space-y-6">
         <CreatePost />
 
-        {/* Sort Tabs */}
+        {/* Sort Dropdown */}
         <Card>
           <CardContent className="p-4">
-            <Tabs
-              value={sortBy}
-              onValueChange={(v) => setSortBy(v as "recent" | "popular")}
-              className="w-full"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-foreground flex items-center space-x-2">
-                  <Filter className="h-4 w-4 text-primary" />
-                  <span>Sort Posts</span>
-                </h3>
-              </div>
-              <TabsList className="grid w-full grid-cols-2 bg-muted">
-                <TabsTrigger value="recent" className="text-sm">
-                  Recent
-                </TabsTrigger>
-                <TabsTrigger value="popular" className="text-sm">
-                  Popular
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-foreground flex items-center space-x-2">
+                <Filter className="h-4 w-4 text-primary" />
+                <span>Sort Posts</span>
+              </h3>
+              <Select
+                value={sortBy}
+                onValueChange={(v) => setSortBy(v as "recent" | "popular")}
+              >
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="recent">
+                    <span className="flex items-center">
+                      <Clock className="h-4 w-4 mr-2 text-primary" /> Recent
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="popular">
+                    <span className="flex items-center">
+                      <Flame className="h-4 w-4 mr-2 text-orange-500" /> Popular
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </CardContent>
         </Card>
 
@@ -94,10 +162,40 @@ export default function Feed() {
             <PostSkeletonList count={3} />
           ) : (
             posts.map((post) => (
-              <PostCard key={post._id || post.id} {...post} />
+              <PostCard
+                key={post.post_id}
+                post={post}
+                currentUserId={currentUserId}
+                showEditDelete={false}
+                onLike={(postId, likedByUser) => {
+                  setPosts((prevPosts) =>
+                    prevPosts.map((p) =>
+                      p.post_id === postId
+                        ? {
+                            ...p,
+                            likes: likedByUser
+                              ? [...p.likes, currentUserId]
+                              : p.likes.filter((id) => id !== currentUserId),
+                            likedByUser, // <-- THIS LINE IS MISSING
+                          }
+                        : p
+                    )
+                  );
+                }}
+                onDeleteComment={() => {}}
+                onAddComment={() => {}}
+                onEditPost={() => {}}
+                onDeletePost={() => {}}
+                editingPostId={null}
+                editMessage={""}
+                editPostType={""}
+                setEditMessage={() => {}}
+                setEditPostType={() => {}}
+                onSaveEdit={() => {}}
+                onCancelEdit={() => {}}
+              />
             ))
           )}
-
 
           {!isLoading && posts.length === 0 && (
             <Card className="text-center py-8">
@@ -122,10 +220,7 @@ export default function Feed() {
           </CardHeader>
           <CardContent className="space-y-2">
             {["Finals2024", "StudyGroups", "CareerFair"].map((topic) => (
-              <div
-                key={topic}
-                className="flex items-center justify-between"
-              >
+              <div key={topic} className="flex items-center justify-between">
                 <Badge variant="outline" className="cursor-pointer">
                   #{topic}
                 </Badge>
@@ -138,5 +233,5 @@ export default function Feed() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

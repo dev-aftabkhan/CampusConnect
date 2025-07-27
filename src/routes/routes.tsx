@@ -28,13 +28,20 @@ export const appRoutes: AppRoute[] = [
     {
         key: "profile",
         path: "/profile",
-        element: lazy(() => import("@/pages/Profile")),
+        element: lazy(() => import("@/pages/ProfilePersonal")),
+        auth: true,
+    },
+    {
+        key: "profile-public",
+        path: "/profile/:userId",
+        element: lazy(() => import("@/pages/ProfileUser")),
         auth: true,
     },
     {
         key: "discover",
         path: "/discover",
         element: lazy(() => import("@/pages/Discover")),
+        auth:true,
     },
     {
         key: "chat",
