@@ -16,7 +16,7 @@ exports.getProfile = async (req, res) => {
   console.log('Fetching profile for user:', user_id);
   
   try {
-    if(user_id === !currentUser) {
+     
         const user = await userService.getprofilebyid(user_id); 
         const currentUserData = await userService.getprofilebyid(currentUser);
         if (!user) {
@@ -55,10 +55,7 @@ exports.getProfile = async (req, res) => {
             status, 
           },
         });
-      } else {
-        // call the getUserProfile function to fetch the current user's profile
-        return this.getUserProfile(req, res);
-      }
+       
   } catch (error) {
     console.error('Error fetching profile:', error);
     res.status(500).json({ message: 'Server error' });
