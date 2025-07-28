@@ -6,6 +6,7 @@ import { ThemeToggle } from "@/theme/ThemeToggle";
 import { logout as logoutApi } from "@/api/auth";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { getOwnUserProfile } from "@/api/user";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -41,11 +42,22 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const [user, setUser] = useState<{ username?: string; email?: string; profilePicture?: string } | null>(null);
 
   useEffect(() => {
-    const userStr = localStorage.getItem("user");
-    if (userStr) {
-      setUser(JSON.parse(userStr));
-    }
+    const fetchUserProfile = async () => {
+      try {
+        const res = await getOwnUserProfile();
+        setUser({
+          username: res.user.username,
+          email: res.user.email,
+          profilePicture: res.user.profilePicture,
+        });
+      } catch (error) {
+        console.error("Failed to fetch user profile", error);
+      }
+    };
+
+    fetchUserProfile();
   }, []);
+
 
   useEffect(() => {
     const fetchUnreadCount = async () => {
@@ -132,7 +144,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
       {/* Mobile Navbar */}
       <nav className="flex md:hidden fixed top-0 left-0 right-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
-        <div className="flex h-16 items-center justify-between px-4">
+        <div className="flex h-16 items-center justify-between px-4 w-full">
+          {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shadow-md">
               <BookOpen className="h-5 w-5 text-white" />
@@ -140,25 +153,43 @@ export default function MainLayout({ children }: MainLayoutProps) {
             <span className="text-xl font-bold text-foreground tracking-tight">CampusConnect</span>
           </Link>
 
+          {/* Menu Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="p-2 rounded-lg border border-input bg-muted text-foreground">
-                <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="3" y1="12" x2="21" y2="12" />
-                  <line x1="3" y1="6" x2="21" y2="6" />
-                  <line x1="3" y1="18" x2="21" y2="18" />
-                </svg>
-              </button>
+              <Avatar className="h-9 w-9 border cursor-pointer hover:ring-2 hover:ring-primary">
+                <AvatarImage src={user?.profilePicture || "/placeholder.svg"} alt="User" />
+                <AvatarFallback>{user?.username?.[0] || "U"}</AvatarFallback>
+              </Avatar>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-48">
+              <div className="px-3 py-2">
+                <div className="font-semibold">{user?.username || "User"}</div>
+                <div className="text-xs text-muted-foreground">{user?.email}</div>
+              </div>
+              <DropdownMenuSeparator />
               {navItems.map(item => (
                 <DropdownMenuItem asChild key={item.path}>
-                  <Link to={item.path} className="flex items-center gap-2 py-2">
-                    <item.icon className="h-5 w-5" />
+                  <Link to={item.path} className="flex items-center gap-2 py-1.5">
+                    <item.icon className="h-4 w-4" />
                     {item.label}
                   </Link>
                 </DropdownMenuItem>
               ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/notifications" className="flex items-center gap-2 py-1.5">
+                  <Bell className="h-4 w-4" />
+                  Notifications
+                  {unreadCount > 0 && (
+                    <span className="ml-auto text-xs bg-destructive text-white rounded-full px-2 py-0.5">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <ThemeToggle />
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} disabled={loading}>
                 {loading ? "Logging out..." : "Logout"}

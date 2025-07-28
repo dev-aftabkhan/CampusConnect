@@ -10,6 +10,7 @@ import { Popover, PopoverContent } from "@/components/ui/popover";
 import { Command, CommandInput, CommandItem } from "@/components/ui/command";
 import { createPostWithImage } from "@/api/post";
 import { getUserByUsername } from "@/api/user";
+import { getOwnUserProfile } from "@/api/user";
 
 export function CreatePost() {
   const [content, setContent] = useState("");
@@ -25,6 +26,22 @@ export function CreatePost() {
   const [searching, setSearching] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [profilePic, setProfilePic] = useState<string>("");
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await getOwnUserProfile();
+        setProfilePic(res.user.profilePicture || ""); // updated path
+      } catch (error) {
+        console.error("Failed to fetch profile:", error);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+
 
   useEffect(() => {
     if (mentionInput.length > 0) {
@@ -124,9 +141,10 @@ export function CreatePost() {
       <CardContent className="space-y-5 relative">
         <div className="flex items-start gap-3">
           <Avatar className="h-10 w-10">
-            <AvatarImage src="/placeholder.svg" />
+            <AvatarImage src={profilePic || "/placeholder.svg"} />
             <AvatarFallback>U</AvatarFallback>
           </Avatar>
+
 
           <div className="flex-1 relative space-y-2">
             <Textarea

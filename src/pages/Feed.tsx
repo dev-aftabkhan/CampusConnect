@@ -122,23 +122,6 @@ export default function Feed() {
                 post={post}
                 currentUserId={currentUserId}
                 showEditDelete={false}
-                onLike={(postId, likedByUser) => {
-                  setPosts((prevPosts) =>
-                    prevPosts.map((p) =>
-                      p.post_id === postId
-                        ? {
-                          ...p,
-                          likes: likedByUser
-                            ? [...p.likes, currentUserId]
-                            : p.likes.filter((id) => id !== currentUserId),
-                          likedByUser,
-                        }
-                        : p
-                    )
-                  );
-                }}
-                onDeleteComment={() => { }}
-                onAddComment={() => { }}
                 onEditPost={() => { }}
                 onDeletePost={() => { }}
                 editingPostId={null}
@@ -149,6 +132,7 @@ export default function Feed() {
                 onSaveEdit={() => { }}
                 onCancelEdit={() => { }}
               />
+
             ))
           ) : (
             <Card className="text-center py-8">

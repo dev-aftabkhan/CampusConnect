@@ -14,7 +14,7 @@ export async function getOwnUserProfile() {
 
 export async function updateProfile({ username, email, phone, bio }: { username: string; email: string; phone: string; bio: string }) {
   const token = getToken();
-  const res = await axios.patch(`${import.meta.env.VITE_API_BASE_URL}/users/profile`, { username, email, phone, bio }, {
+  const res = await axios.put(`${import.meta.env.VITE_API_BASE_URL}/users/profile`, { username, email, phone, bio }, {
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {})
