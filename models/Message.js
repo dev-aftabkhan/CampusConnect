@@ -8,6 +8,7 @@ const messageSchema = new mongoose.Schema({
   encrypted: { type: Boolean, default: false },
   iv: { type: String },
   media: [{ type: String }],
+  read: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 });
 

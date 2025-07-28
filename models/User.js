@@ -59,8 +59,13 @@ const userSchema = new mongoose.Schema({
     type: String, 
     ref: 'User',
     default: [],
-  }]
-   
+  }],
+  pendingRequests: [{
+    type: String,
+    ref: 'User',
+    default: [],
+  }],
+
 }, { timestamps: true },
 {
   toJSON: { virtuals: true },
@@ -82,6 +87,12 @@ userSchema.virtual('followerInfo', {
 userSchema.virtual('followingInfo', {
   ref: 'User',
   localField: 'following',
+  foreignField: 'user_id',
+  justOne: false
+});
+userSchema.virtual('pendingRequestsInfo', {
+  ref: 'User',
+  localField: 'pendingRequests',
   foreignField: 'user_id',
   justOne: false
 });

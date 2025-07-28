@@ -52,6 +52,10 @@ function socketHandler(io) {
         // ✅ Emit to receiver if online
         const targetSocket = connectedUsers.get(to);
         if (targetSocket) {
+
+           message.read = true;
+            await message.save();
+
           targetSocket.emit('receive_message', message);
         }else{
           // ✅ If offline, send notification

@@ -14,6 +14,7 @@ router.delete('/:id/comment/:commentId', protect, postController.deleteComment);
 router.get('/popular', protect, postController.getPopularPosts);
 router.get('/recentposts', protect, postController.getRecentPosts);
 router.get('/:id/isliked', protect, postController.isPostLiked);
+router.get('/:id', protect, postController.getPostById);
 
 
 module.exports = router;

@@ -4,6 +4,7 @@ const { validationResult } = require('express-validator');
 const fs = require('fs');
 const Post = require('../models/Post');
 const User = require('../models/User');
+const followService = require('../services/followService');
  
 const path = require('path'); 
 
@@ -11,42 +12,53 @@ const path = require('path');
 exports.getProfile = async (req, res) => {
   const user_id = req.params.id;
   const currentUser = req.user; // Assuming current user is stored in req.user
+
   console.log('Fetching profile for user:', user_id);
+  
   try {
-    const user = await userService.getprofilebyid(user_id); 
-    const currentUserData = await userService.getprofilebyid(currentUser);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+    if(user_id === !currentUser) {
+        const user = await userService.getprofilebyid(user_id); 
+        const currentUserData = await userService.getprofilebyid(currentUser);
+        if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+        }
 
-    // 🔍 Get the user's posts
-    const posts = await Post.find({ user: user.user_id }).sort({ createdAt: -1 });
+        // 🔍 Get the user's posts
+        const posts = await Post.find({ user: user.user_id }).sort({ createdAt: -1 });
 
-    // 🧮 Get counts
-    const postCount = posts.length;
-    const followerCount = Array.isArray(user.follower) ? user.follower.length : 0;
-    const followingCount = Array.isArray(user.following) ? user.following.length : 0;
-    // get mutuals count and users
-    const mutuals = user.follower.filter(f => currentUserData.following.includes(f));
-    const mutualCount = mutuals.length || 0;
+        // 🧮 Get counts
+        const postCount = posts.length;
+        const followerCount = Array.isArray(user.follower) ? user.follower.length : 0;
+        const followingCount = Array.isArray(user.following) ? user.following.length : 0;
+        // get mutuals count and users
+        const mutuals = user.follower.filter(f => currentUserData.following.includes(f));
+        const mutualCount = mutuals.length || 0;
 
-    res.status(200).json({
-      user: {
-        user_id: user.user_id,
-        username: user.username,
-        email: user.email,
-        phone: user.phone,
-        profilePicture: user.profilePicture,
-        bio: user.bio,
-        interests: user.interests,
-        postCount,
-        followerCount,
-        followingCount,
-        posts,
-        mutualCount,
-        mutuals,
-      },
-    });
+        // get following status
+        const status = await followService.checkFollowStatus(currentUser, user_id);
+
+        res.status(200).json({
+          user: {
+            user_id: user.user_id,
+            username: user.username,
+            email: user.email,
+            phone: user.phone,
+            profilePicture: user.profilePicture,
+            bio: user.bio,
+            interests: user.interests,
+            postCount,
+            followerCount,
+            followingCount,
+            posts,
+            mutualCount,
+            mutuals,
+            status, 
+          },
+        });
+      } else {
+        // call the getUserProfile function to fetch the current user's profile
+        return this.getUserProfile(req, res);
+      }
   } catch (error) {
     console.error('Error fetching profile:', error);
     res.status(500).json({ message: 'Server error' });

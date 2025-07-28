@@ -140,3 +140,8 @@ exports.isPostLiked = async (postId, userId) => {
   if (!post) throw new Error('Post not found');
   return post.likes.includes(userId);
 };
+
+//get post by id
+exports.getPostById = async (postId) => {
+  return await Post.findOne({ post_id: postId });
+};

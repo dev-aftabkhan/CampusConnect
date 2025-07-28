@@ -1,4 +1,6 @@
 const Message = require('../models/Message');
+const User = require('../models/User');  
+
 
 exports.getMessages = async (req, res) => {
   const messages = await Message.find({

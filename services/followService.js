@@ -19,6 +19,8 @@ exports.sendFollowRequest = async (fromUserId, toUserId) => {
 
   receiver.followRequests.push(fromUserId);
   await receiver.save();
+  sender.pendingRequests.push(toUserId);
+  await sender.save();
 
   // 🔔 Trigger follow request notification
   await triggerNotification({
@@ -44,21 +46,30 @@ exports.acceptFollowRequest = async (userId, fromUserId) => {
   if (!user.followRequests.includes(fromUserId)) throw new Error('No such follow request');
 
   user.followRequests.pull(fromUserId);
+  fromUser.pendingRequests.pull(userId);
   user.follower.push(fromUserId);
   fromUser.following.push(userId);
-
+  if(!user.following.includes(fromUserId)){
+    this.sendFollowRequest(userId, fromUserId);
+  }
   await user.save();
   await fromUser.save();
 };
 
 exports.rejectFollowRequest = async (userId, fromUserId) => {
   const user = await UserService.findUserById(userId);
+  const fromUser = await UserService.findUserById(fromUserId);
   if (!user) throw new Error('User not found');
 
   if (!user.followRequests.includes(fromUserId)) throw new Error('No such follow request');
 
   user.followRequests.pull(fromUserId);
+  user.following.pull(fromUserId);
   await user.save();
+  fromUser.pendingRequests.pull(userId);
+  fromUser.follower.pull(userId);
+  await fromUser.save();
+
 };
 
 exports.getFollowers = async (viewerId, targetId) => {
@@ -119,5 +130,22 @@ exports.unfollowUser = async (userId, targetId) => {
 
   await currentUser.save();
   await targetUser.save();
+};
+
+// check the status of a follow request by using pendingRequests, followers, and following arrays
+exports.checkFollowStatus = async (userId, targetId) => {
+  const user = await UserService.findUserById(userId);
+  const target = await UserService.findUserById(targetId);
+ 
+  if(user.follower.includes(targetId) && user.following.includes(targetId)){
+    return 'connected';
+  }
+  if (user.pendingRequests.includes(targetId)) {
+    return 'Requested';
+  }
+  if(user.followRequests.includes(targetId) && user.following.includes(targetId)){
+    return 'incoming request';
+  }
+  return 'not following';
 };
 

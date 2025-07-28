@@ -199,3 +199,30 @@ exports.isPostLiked = async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 };
+
+// get post by id
+exports.getPostById = async (req, res) => {
+  try {
+    const postId = req.params.id;
+    const userId = req.user;
+
+    const post = await postService.getPostById(postId, userId);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    // enrich post with user details
+    const user = await User.findOne({ user_id: post.user });
+    post.username = user ? user.username : 'Unknown';
+    post.profilePicture = user ? user.profilePicture : '';
+
+    // enrich comments with user details
+    for (const comment of post.comments) {
+      const commentUser = await User.findOne({ user_id: comment.user });
+      comment.username = commentUser ? commentUser.username : 'Unknown';
+      comment.profilePicture = commentUser ? commentUser.profilePicture : '';
+    }
+
+    res.json(post);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
