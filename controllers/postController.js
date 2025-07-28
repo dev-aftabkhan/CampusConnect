@@ -166,6 +166,13 @@ exports.getPopularPosts = async (req, res) => {
 exports.getRecentPosts = async (req, res) => {
   try {
     const posts = await postService.getRecentPosts(10);
+    // username and profile picture for each post
+    for (const post of posts) {
+      const user = await User.findOne({ user_id: post.user });
+      post.username = user ? user.username : 'Unknown';
+      post.profilePicture = user ? user.profilePicture : '';
+    }
+    
     res.json({ posts });
   } catch (err) {
     res.status(500).json({ message: err.message });

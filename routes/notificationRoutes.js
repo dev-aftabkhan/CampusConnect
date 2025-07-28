@@ -8,6 +8,8 @@ router.get('/', protect, async (req, res) => {
   res.json(notifs);
 });
 
+
+
 router.patch('/:id/read', protect, async (req, res) => {
   await Notification.findOneAndUpdate({ notification_id: req.params.id }, { read: true });
   res.json({ message: 'Marked as read' });
