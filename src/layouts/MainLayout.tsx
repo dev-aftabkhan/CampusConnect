@@ -106,12 +106,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
             <Link to="/notifications" className="relative p-2 rounded-full hover:bg-muted transition-colors">
               <Bell className="h-5 w-5 text-muted-foreground" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 text-xs font-bold h-5 w-5 rounded-full bg-destructive text-white flex items-center justify-center">
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
+                <>
+                  <span className="absolute top-0 right-0 mt-0.5 mr-0.5 h-2 w-2 rounded-full bg-destructive border border-background z-10" />
+                  <span className="absolute top-0 right-0 mt-0.5 mr-0.5 h-2 w-2 rounded-full bg-destructive opacity-75 animate-ping z-0" />
+                </>
               )}
             </Link>
-
             <ThemeToggle />
 
             <DropdownMenu>
@@ -177,13 +177,13 @@ export default function MainLayout({ children }: MainLayoutProps) {
               ))}
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link to="/notifications" className="flex items-center gap-2 py-1.5">
-                  <Bell className="h-4 w-4" />
-                  Notifications
+                <Link to="/notifications" className="relative p-2 rounded-full hover:bg-muted transition-colors">
+                  <Bell className="h-5 w-5 text-muted-foreground" />
                   {unreadCount > 0 && (
-                    <span className="ml-auto text-xs bg-destructive text-white rounded-full px-2 py-0.5">
-                      {unreadCount > 9 ? "9+" : unreadCount}
-                    </span>
+                    <>
+                      <span className="absolute top-0 right-0 mt-0.5 mr-0.5 h-2 w-2 rounded-full bg-destructive border border-background z-10" />
+                      <span className="absolute top-0 right-0 mt-0.5 mr-0.5 h-2 w-2 rounded-full bg-destructive opacity-75 animate-ping z-0" />
+                    </>
                   )}
                 </Link>
               </DropdownMenuItem>
