@@ -49,4 +49,10 @@ export const appRoutes: AppRoute[] = [
         element: lazy(() => import("@/pages/Chat")),
         auth: true,
     },
+    {
+        key: "notifications",
+        path: "/notifications",
+        element: lazy(() => import("@/pages/Notification")),
+        auth: true,
+    },    
 ];

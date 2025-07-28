@@ -5,7 +5,6 @@ import { PostCard } from "@/components/PostCard";
 import { PostSkeletonList } from "@/components/ui/post-skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp, Filter, Clock, Flame } from "lucide-react";
 import {
   Select,
@@ -14,37 +13,33 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
+
+const userData = JSON.parse(localStorage.getItem("user") || "{}");
+const currentUserId = userData.id || "";
+
 type PostWithExtras = {
   post_id: string;
   message: string;
   media: string[];
   mediaType: string;
-  postType: string;
+  postType: string[];
   user: string;
   likes: string[];
-  comments: any[]; // or more specific if you have a type
-  author: {
-    username: string;
-    profilePicture: string | null;
-  };
+  comments: any[];
+  username: string;
+  profilePicture: string | null;
   likedByUser: boolean;
 };
-
-import { getUserProfileById } from "@/api/user"; // ✅ make sure this exists
-const userData = JSON.parse(localStorage.getItem("user") || "{}");
-const currentUserId = userData.id || "";
 
 export default function Feed() {
   const [sortBy, setSortBy] = useState<"recent" | "popular">("recent");
   const [posts, setPosts] = useState<PostWithExtras[]>([]);
-
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchPosts = useCallback(async () => {
     setIsLoading(true);
     try {
       const url = sortBy === "recent" ? "/posts/recentposts" : "/posts/popular";
-
       const resp = await axios.get(
         `${import.meta.env.VITE_API_BASE_URL}${url}`,
         {
@@ -55,64 +50,24 @@ export default function Feed() {
       );
 
       const items = resp.data?.posts || [];
-      const authorCache = new Map<string, any>();
 
-      const getAuthorData = async (userId: string) => {
-        if (!userId) {
-          return { username: "Unknown", profilePicture: null };
-        }
+      const postsWithExtras = items.map((post: any) => ({
+        ...post,
+        likedByUser: post.likes?.includes(currentUserId),
+        author: {
+          username: post.username || "Unknown",
+          profilePicture: post.profilePicture || null,
+          _id: post.user,
+        },
+      }));
 
-        if (authorCache.has(userId)) {
-          return authorCache.get(userId);
-        }
-
-        try {
-          const res = await getUserProfileById(userId);
-          const user = res?.user;
-          const data = {
-            username: user?.username || "Unknown",
-            profilePicture: user?.profilePicture || null,
-          };
-          authorCache.set(userId, data);
-          return data;
-        } catch (error) {
-          console.error(`Failed to fetch profile for user: ${userId}`, error);
-          const fallback = { username: "Unknown", profilePicture: null };
-          authorCache.set(userId, fallback);
-          return fallback;
-        }
-      };
-
-      const postsWithAuthor = await Promise.all(
-        items.map(async (post: any) => {
-          post.author = await getAuthorData(post.user);
-
-          if (Array.isArray(post.comments)) {
-            post.comments = await Promise.all(
-              post.comments.map(async (comment: any) => ({
-                ...comment,
-                author: await getAuthorData(comment.user),
-              }))
-            );
-          }
-          // ✅ Enrich with likedByUser flag
-          const likedByUser = post.likes?.includes(currentUserId);
-          post.likedByUser = likedByUser;
-
-          return {
-            ...post,
-            likedByUser,
-          };
-        })
-      );
-
-      setPosts(postsWithAuthor);
+      setPosts(postsWithExtras);
     } catch (err) {
       console.error("Error fetching posts:", err);
     } finally {
       setIsLoading(false);
     }
-  }, [sortBy, currentUserId]);
+  }, [sortBy]);
 
   useEffect(() => {
     fetchPosts();
@@ -137,7 +92,7 @@ export default function Feed() {
                 onValueChange={(v) => setSortBy(v as "recent" | "popular")}
               >
                 <SelectTrigger className="w-48">
-                  <SelectValue />
+                  <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="recent">
@@ -156,11 +111,11 @@ export default function Feed() {
           </CardContent>
         </Card>
 
-        {/* Posts */}
+        {/* Posts List */}
         <div className="space-y-4">
           {isLoading ? (
             <PostSkeletonList count={3} />
-          ) : (
+          ) : posts.length > 0 ? (
             posts.map((post) => (
               <PostCard
                 key={post.post_id}
@@ -172,37 +127,33 @@ export default function Feed() {
                     prevPosts.map((p) =>
                       p.post_id === postId
                         ? {
-                            ...p,
-                            likes: likedByUser
-                              ? [...p.likes, currentUserId]
-                              : p.likes.filter((id) => id !== currentUserId),
-                            likedByUser, // <-- THIS LINE IS MISSING
-                          }
+                          ...p,
+                          likes: likedByUser
+                            ? [...p.likes, currentUserId]
+                            : p.likes.filter((id) => id !== currentUserId),
+                          likedByUser,
+                        }
                         : p
                     )
                   );
                 }}
-                onDeleteComment={() => {}}
-                onAddComment={() => {}}
-                onEditPost={() => {}}
-                onDeletePost={() => {}}
+                onDeleteComment={() => { }}
+                onAddComment={() => { }}
+                onEditPost={() => { }}
+                onDeletePost={() => { }}
                 editingPostId={null}
                 editMessage={""}
                 editPostType={""}
-                setEditMessage={() => {}}
-                setEditPostType={() => {}}
-                onSaveEdit={() => {}}
-                onCancelEdit={() => {}}
+                setEditMessage={() => { }}
+                setEditPostType={() => { }}
+                onSaveEdit={() => { }}
+                onCancelEdit={() => { }}
               />
             ))
-          )}
-
-          {!isLoading && posts.length === 0 && (
+          ) : (
             <Card className="text-center py-8">
               <CardContent>
-                <p className="text-muted-foreground">
-                  No posts to show right now.
-                </p>
+                <p className="text-muted-foreground">No posts to show right now.</p>
               </CardContent>
             </Card>
           )}
