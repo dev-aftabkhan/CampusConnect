@@ -56,89 +56,101 @@ export default function Chat() {
   const typingTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // ✅ Connect to socket only once
-  useEffect(() => {
-    if (!token) return
+ // ✅ Establish socket only once
+useEffect(() => {
+  if (!token) return;
 
-    const socket = io(socketURL, {
-      auth: { token },
-      transports: ["websocket"],
-    })
+  const socket = io(socketURL, {
+    auth: { token },
+    transports: ["websocket"],
+  });
 
-    socketRef.current = socket
+  socketRef.current = socket;
 
-    socket.on("receive_message", (msg) => {
-      if (!msg || !msg.sender) return
-      console.log("📥 Message from:", msg.sender)
+  socket.on("message_sent", (msg) => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        content: msg.text,
+        timestamp: msg.createdAt,
+        isSent: true,
+        read: true,
+      },
+    ]);
+    setChatUsers((prev) =>
+      prev.map((user) =>
+        user.id === selectedChat
+          ? {
+              ...user,
+              lastMessage: msg.text,
+              timestamp: formatDateLabel(msg.createdAt),
+            }
+          : user
+      )
+    );
+  });
 
-      if (msg.sender === selectedChat) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            content: msg.text,
-            timestamp: msg.createdAt,
-            isSent: false,
-            sender: msg.sender,
-            read: msg.read,
-          },
-        ])
-        // Update chatUsers for selected chat
-        setChatUsers((prev) =>
-          prev.map((user) =>
-            user.id === msg.sender
-              ? {
-                  ...user,
-                  lastMessage: msg.text,
-                  timestamp: formatDateLabel(msg.createdAt),
-                  unread: 0,
-                }
-              : user
-          )
-        )
-        socket.emit("mark_as_read", { from: selectedChat })
-      } else {
-        setChatUsers((prev) =>
-          prev.map((user) =>
-            user.id === msg.sender
-              ? {
-                  ...user,
-                  unread: user.unread + 1,
-                  lastMessage: msg.text,
-                  timestamp: formatDateLabel(msg.createdAt),
-                }
-              : user
-          )
-        )
-      }
-    })
+  return () => {
+    socket.disconnect();
+  };
+}, [token]);
 
-    socket.on("message_sent", (msg) => {
+// ✅ Listen to receive_message separately with live selectedChat
+useEffect(() => {
+  const socket = socketRef.current;
+  if (!socket) return;
+
+  const handleReceiveMessage = (msg: any) => {
+    if (!msg || !msg.sender) return;
+    console.log("📥 Received message from:", msg.sender);
+
+    if (msg.sender === selectedChat) {
       setMessages((prev) => [
         ...prev,
         {
           content: msg.text,
           timestamp: msg.createdAt,
-          isSent: true,
-          read: true,
+          isSent: false,
+          sender: msg.sender,
+          read: msg.read,
         },
-      ])
-      // Update chatUsers for selected chat
+      ]);
       setChatUsers((prev) =>
         prev.map((user) =>
-          user.id === selectedChat
+          user.id === msg.sender
             ? {
                 ...user,
+                lastMessage: msg.text,
+                timestamp: formatDateLabel(msg.createdAt),
+                unread: 0,
+              }
+            : user
+        )
+      );
+      socket.emit("mark_as_read", { from: selectedChat });
+    } else {
+      setChatUsers((prev) =>
+        prev.map((user) =>
+          user.id === msg.sender
+            ? {
+                ...user,
+                unread: user.unread + 1,
                 lastMessage: msg.text,
                 timestamp: formatDateLabel(msg.createdAt),
               }
             : user
         )
-      )
-    })
-
-    return () => {
-      socket.disconnect()
+      );
     }
-  }, [token])
+  };
+
+  socket.on("receive_message", handleReceiveMessage);
+
+  return () => {
+    socket.off("receive_message", handleReceiveMessage); // Cleanup old listener
+  };
+}, [selectedChat]);
+
 
   // ✅ Load users
   useEffect(() => {
