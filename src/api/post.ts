@@ -153,13 +153,17 @@ export async function getRecentPosts() {
 
 export async function searchPostsByTag(query: string) {
   const token = localStorage.getItem('token');
-  const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/search?query=${encodeURIComponent(query)}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  return res.data.posts; 
+  const res = await axios.get(
+    `${import.meta.env.VITE_API_BASE_URL}/search?query=${encodeURIComponent(query)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  return res.data.posts;
 }
+
 
 export async function getPostById(postId: string) {
   const token = localStorage.getItem('token');
