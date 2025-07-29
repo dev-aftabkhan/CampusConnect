@@ -50,3 +50,22 @@ exports.getUserByUsername = async (username) => {
   if (!user) throw new Error('User not found');
   return user;
 };
+
+// get common users present in both follower and following list
+exports.getCommonUsers = async (user_id) => {
+  const user = await User.findOne({ user_id }).select('follower following');
+  if (!user) throw new Error('User not found');
+
+  // Get common user_ids
+  const followerSet = new Set(user.follower.map(String));
+  const followingSet = new Set(user.following.map(String));
+
+  const commonIds = [...followerSet].filter(id => followingSet.has(id));
+
+  // Fetch common users
+  const commonUsers = await User.find({ user_id: { $in: commonIds } })
+    .select('user_id username profilePicture');
+
+  return commonUsers;
+};
+

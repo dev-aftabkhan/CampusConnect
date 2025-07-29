@@ -11,5 +11,6 @@ router.patch('/profile-image', protect, upload.single('profilePicture'), userCon
 router.get('/:id/profile', protect, userController.getProfile);
 router.get('/userprofile', protect, userController.getUserProfile);
 router.get('/username/:username', protect, userController.fetchUserByUsername);
+router.get('/common-users', protect, userController.getCommonUsers);
 
 module.exports = router;

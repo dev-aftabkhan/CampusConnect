@@ -266,4 +266,14 @@ exports.fetchUserByUsername = async (req, res) => {
   }
 };
 
- 
+// Fetch common users in both follower and following lists
+exports.getCommonUsers = async (req, res) => {
+  try {
+    const user_id = req.user; // Assuming user_id is stored in req.user after authentication
+    const commonUsers = await userService.getCommonUsers(user_id);
+    res.status(200).json(commonUsers);
+  } catch (err) {
+    console.error('Error fetching common users:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
