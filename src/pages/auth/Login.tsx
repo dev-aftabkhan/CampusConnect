@@ -24,7 +24,7 @@ export default function Login() {
         try {
             await login(identifier, password);
             navigate("/", { replace: true });
-            window.location.reload();
+            // No reload, rely on state/context for live update
         } catch (err: any) {
             setError(err?.response?.data?.message || "Invalid credentials");
         } finally {

@@ -1,0 +1,23 @@
+/* Custom scrollbar for Register page */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #6366f1 #f5f3ef;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  background: #f5f3ef;
+  border-radius: 8px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #6366f1cc; /* Tailwind primary/40 */
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.scrollbar-thin:hover::-webkit-scrollbar-thumb {
+  background: #6366f1ee; /* Tailwind primary/60 */
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #ffffff4d; /* white/30 */
+  border-radius: 8px;
+}

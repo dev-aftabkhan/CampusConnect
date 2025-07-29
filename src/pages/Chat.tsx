@@ -9,7 +9,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { MessageSquare, Send } from "lucide-react"
 import { getCommonChatUsers } from "@/api/user"
 import { getChatMessages } from "@/api/chat"
-import io, { Socket } from "socket.io-client"
+import io, { Socket as SocketType } from "socket.io-client"
+import { toast } from "@/components/ui/use-toast";
 
 interface ChatUser {
   id: string
@@ -48,9 +49,11 @@ export default function Chat() {
   const [selectedChat, setSelectedChat] = useState<string | null>(null)
   const [newMessage, setNewMessage] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
-  const socketRef = useRef<Socket | null>(null)
+  const socketRef = useRef<SocketType | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const token = localStorage.getItem("token")
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // ✅ Connect to socket only once
   useEffect(() => {
@@ -62,14 +65,6 @@ export default function Chat() {
     })
 
     socketRef.current = socket
-
-    socket.on("connect", () => {
-      console.log("✅ Connected to socket:", socket.id)
-    })
-
-    socket.on("disconnect", (reason) => {
-      console.warn("🔌 Socket disconnected:", reason)
-    })
 
     socket.on("receive_message", (msg) => {
       if (!msg || !msg.sender) return
@@ -86,17 +81,30 @@ export default function Chat() {
             read: msg.read,
           },
         ])
+        // Update chatUsers for selected chat
+        setChatUsers((prev) =>
+          prev.map((user) =>
+            user.id === msg.sender
+              ? {
+                  ...user,
+                  lastMessage: msg.text,
+                  timestamp: formatDateLabel(msg.createdAt),
+                  unread: 0,
+                }
+              : user
+          )
+        )
         socket.emit("mark_as_read", { from: selectedChat })
       } else {
         setChatUsers((prev) =>
           prev.map((user) =>
             user.id === msg.sender
               ? {
-                ...user,
-                unread: user.unread + 1,
-                lastMessage: msg.text,
-                timestamp: formatDateLabel(msg.createdAt),
-              }
+                  ...user,
+                  unread: user.unread + 1,
+                  lastMessage: msg.text,
+                  timestamp: formatDateLabel(msg.createdAt),
+                }
               : user
           )
         )
@@ -113,6 +121,18 @@ export default function Chat() {
           read: true,
         },
       ])
+      // Update chatUsers for selected chat
+      setChatUsers((prev) =>
+        prev.map((user) =>
+          user.id === selectedChat
+            ? {
+                ...user,
+                lastMessage: msg.text,
+                timestamp: formatDateLabel(msg.createdAt),
+              }
+            : user
+        )
+      )
     })
 
     return () => {
@@ -137,6 +157,7 @@ export default function Chat() {
         }))
         setChatUsers(users)
       } catch (err) {
+        toast({ title: "Failed to load users", variant: "destructive" });
         console.error("Failed to load users:", err)
       }
     }
@@ -163,6 +184,7 @@ export default function Chat() {
         )
         socketRef.current?.emit("mark_as_read", { from: selectedChat })
       } catch (err) {
+        toast({ title: "Failed to load chat history", variant: "destructive" });
         console.error("Failed to load chat history:", err)
       }
     }
@@ -179,7 +201,7 @@ export default function Chat() {
     if (!newMessage.trim() || !selectedChat) return
     const socket = socketRef.current
     if (!socket || !socket.connected) {
-      console.warn("Socket not connected")
+      toast({ title: "Socket not connected", variant: "destructive" });
       return
     }
     socket.emit("send_message", {
@@ -187,7 +209,20 @@ export default function Chat() {
       text: newMessage.trim(),
     })
     setNewMessage("")
+    toast({ title: "Message sent!", variant: "default" });
   }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    if (e.target.value.trim()) {
+      setIsTyping(true);
+      if (typingTimeout.current) clearTimeout(typingTimeout.current);
+      typingTimeout.current = setTimeout(() => setIsTyping(false), 1000);
+    } else {
+      setIsTyping(false);
+      if (typingTimeout.current) clearTimeout(typingTimeout.current);
+    }
+  };
 
   const selectedUser = chatUsers.find((u) => u.id === selectedChat)
 
@@ -294,6 +329,11 @@ export default function Chat() {
                       </div>
                     </div>
                   ))}
+                  {isTyping && (
+                    <div className="flex justify-end">
+                      <div className="text-xs text-muted-foreground italic">You are typing...</div>
+                    </div>
+                  )}
                   <div ref={scrollRef} /> {/* 👈 scrolls into view automatically */}
                 </div>
               </ScrollArea>
@@ -305,7 +345,7 @@ export default function Chat() {
                 <Input
                   placeholder="Type your message..."
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={handleInputChange}
                   onKeyDown={(e) => e.key === "Enter" && sendMessage()}
                   className="flex-1"
                 />

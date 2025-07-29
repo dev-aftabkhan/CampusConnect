@@ -27,6 +27,7 @@ import {
   followUser,
   unfollowUser,
 } from "@/api/user";
+import { toast } from "@/components/ui/use-toast";
 
 interface Post {
   _id: string;
@@ -56,8 +57,8 @@ interface ProfileData {
 }
 
 export default function ProfileUser() {
-  const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
+  const { userId } = useParams<{ userId: string }>();
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -151,33 +152,39 @@ export default function ProfileUser() {
     try {
       await followUser(profileData.user_id); // assuming 2nd arg indicates acceptance
       setFollowStatus("connected");
+      toast({ title: "Follow request accepted!", variant: "default" });
     } catch (err) {
+      toast({ title: "Failed to accept follow request.", variant: "destructive" });
       console.error("❌ Accept follow failed", err);
     }
   };
-  
+
   const handleDeclineFollow = async () => {
     if (!profileData) return;
     try {
       await unfollowUser(profileData.user_id); // or a separate declineFollow API
       setFollowStatus("not following");
+      toast({ title: "Follow request declined.", variant: "default" });
     } catch (err) {
+      toast({ title: "Failed to decline follow request.", variant: "destructive" });
       console.error("❌ Decline follow failed", err);
     }
   };
 
-  
   const handleFollowToggle = async () => {
     if (!profileData) return;
     try {
       if (followStatus === "connected") {
         await unfollowUser(profileData.user_id);
         setFollowStatus("not following");
+        toast({ title: "Unfollowed user.", variant: "default" });
       } else if (followStatus === "not following") {
         await followUser(profileData.user_id);
         setFollowStatus("Requested");
+        toast({ title: "Follow request sent!", variant: "default" });
       }
     } catch (err) {
+      toast({ title: "Failed to update follow status.", variant: "destructive" });
       console.error("❌ Follow toggle failed", err);
     }
   };
@@ -200,14 +207,15 @@ export default function ProfileUser() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-      <Card>
-        <div className="h-32 bg-gradient-to-r from-primary to-indigo-600" />
-        <CardContent className="-mt-16 pb-6 relative">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+    <div className="min-h-screen py-10 px-2">
+      <div className="max-w-4xl mx-auto space-y-8">
+        <Card className="shadow-2xl rounded-2xl border-0 overflow-hidden">
+          <div className="h-32 bg-gradient-to-r from-primary to-indigo-600" />
+          <CardContent className="-mt-16 pb-6 relative">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             {/* Left: Avatar + Info */}
             <div className="flex gap-4 items-start">
-              <Avatar className="h-24 w-24 border-4 border-background">
+              <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
                 <AvatarImage
                   src={profileData.profilePicture || "/placeholder.svg"}
                   alt={profileData.username}
@@ -219,7 +227,7 @@ export default function ProfileUser() {
                 <h1 className="text-2xl font-bold">{profileData.username}</h1>
                 <p className="text-muted-foreground text-sm">{profileData.email}</p>
                 {profileData.bio && (
-                  <p className="text-sm text-muted-foreground">{profileData.bio}</p>
+                  <p className="text-sm mt-1">{profileData.bio}</p>
                 )}
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mt-2">
                   {profileData.phone && (
@@ -231,8 +239,7 @@ export default function ProfileUser() {
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
                     <span>
-                      Joined{" "}
-                      {new Date(profileData.createdAt).toLocaleDateString(undefined, {
+                      Joined {new Date(profileData.createdAt).toLocaleDateString(undefined, {
                         year: "numeric",
                         month: "long",
                       })}
@@ -249,7 +256,7 @@ export default function ProfileUser() {
                   {followStatus === "not following" && (
                     <button
                       onClick={handleFollowToggle}
-                      className="mt-4 md:mt-0 px-4 py-2 text-sm rounded-md font-medium bg-slate-600 text-black hover:bg-gray-200 transition-colors"
+                      className="mt-4 md:mt-0 px-4 py-2 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/80 transition-colors"
                     >
                       Follow
                     </button>
@@ -258,7 +265,7 @@ export default function ProfileUser() {
                   {followStatus === "Requested" && (
                     <button
                       disabled
-                      className="mt-4 md:mt-0 px-4 py-2 text-sm rounded-md font-medium bg-black text-white cursor-not-allowed"
+                      className="mt-4 md:mt-0 px-4 py-2 text-sm rounded-md font-medium bg-muted text-muted-foreground cursor-not-allowed"
                     >
                       Requested
                     </button>
@@ -274,7 +281,7 @@ export default function ProfileUser() {
                       </button>
                       <button
                         onClick={handleDeclineFollow}
-                        className="px-4 py-2 text-sm rounded-md font-medium bg-gray-300 text-black hover:bg-gray-400 transition-colors"
+                        className="px-4 py-2 text-sm rounded-md font-medium bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
                       >
                         Decline
                       </button>
@@ -284,7 +291,7 @@ export default function ProfileUser() {
                   {followStatus === "connected" && (
                     <button
                       onClick={handleFollowToggle}
-                      className="mt-4 md:mt-0 px-4 py-2 text-sm rounded-md font-medium bg-slate-600 text-white hover:bg-red-600 transition-colors"
+                      className="mt-4 md:mt-0 px-4 py-2 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-destructive transition-colors"
                     >
                       Unfollow
                     </button>
@@ -294,112 +301,118 @@ export default function ProfileUser() {
 
 
           </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Stats Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: "Posts", value: profileData.postCount, icon: MessageSquare },
-          {
-            label: "Followers",
-            value: profileData.followerCount,
-            icon: Users,
-            onClick: () => handleOpenList("followers"),
-          },
-          {
-            label: "Following",
-            value: profileData.followingCount,
-            icon: User,
-            onClick: () => handleOpenList("following"),
-          },
-          {
-            label: "Mutuals",
-            value: profileData.mutualCount,
-            icon: User,
-            onClick: () => handleOpenList("mutuals"),
-          },
-        ].map((stat, index) => (
-          <Card
-            key={index}
-            className={`text-center p-4 hover:shadow-lg transition-shadow ${stat.onClick ? "cursor-pointer" : ""
-              }`}
-            onClick={stat.onClick}
-          >
-            <stat.icon className="h-6 w-6 mx-auto text-primary mb-1" />
-            <div className="text-xl font-semibold">{stat.value}</div>
-            <p className="text-sm text-muted-foreground">{stat.label}</p>
-          </Card>
-        ))}
-      </div>
-
-      {/* Posts */}
-      <Tabs defaultValue="posts" className="mt-6 space-y-4">
-        <TabsList className="hidden" />
-        <TabsContent value="posts" className="space-y-4">
-          {enrichedPosts.length > 0 ? (
-            enrichedPosts.map((post) => (
-              <PostCard
-                key={post._id}
-                post={post}
-                currentUserId={loggedInUserId || ""}
-                showEditDelete={false}
-                onLike={() => { }}
-                onDeleteComment={() => { }}
-                onAddComment={() => { }}
-                onEditPost={() => { }}
-                onDeletePost={() => { }}
-                editingPostId={null}
-                editMessage={""}
-                editPostType={""}
-                setEditMessage={() => { }}
-                setEditPostType={() => { }}
-                onSaveEdit={() => { }}
-                onCancelEdit={() => { }}
-              />
-            ))
-          ) : (
-            <Card>
-              <CardContent className="p-6 text-center text-muted-foreground">
-                No posts yet.
-              </CardContent>
+        {/* Stats Section */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: "Posts", value: profileData.postCount, icon: MessageSquare },
+            {
+              label: "Followers",
+              value: profileData.followerCount,
+              icon: Users,
+              onClick: () => handleOpenList("followers"),
+            },
+            {
+              label: "Following",
+              value: profileData.followingCount,
+              icon: User,
+              onClick: () => handleOpenList("following"),
+            },
+            {
+              label: "Mutuals",
+              value: profileData.mutualCount,
+              icon: User,
+              onClick: () => handleOpenList("mutuals"),
+            },
+          ].map((stat, index) => (
+            <Card
+              key={index}
+              className={`text-center p-4 rounded-xl hover:shadow-xl transition-shadow border-0 ${stat.onClick ? "cursor-pointer" : ""}`}
+              onClick={stat.onClick}
+            >
+              <stat.icon className="h-6 w-6 mx-auto text-primary mb-1" />
+              <div className="text-xl font-semibold">{stat.value}</div>
+              <p className="text-sm text-muted-foreground">{stat.label}</p>
             </Card>
-          )}
-        </TabsContent>
-      </Tabs>
+          ))}
+        </div>
 
-      {/* Followers/Following/Mutuals Modal */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{dialogTitle}</DialogTitle>
-          </DialogHeader>
-          {userList.length > 0 ? (
-            <div className="flex flex-col gap-3">
-              {userList.map((user, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-3 cursor-pointer"
-                  onClick={() => navigate(`/profile/${user.user_id}`)}
-                >
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage
-                      src={user.profilePicture || "/placeholder.svg"}
-                      alt={user.username}
-                    />
-                    <AvatarFallback>{user.username?.[0]}</AvatarFallback>
-                  </Avatar>
-                  <span className="font-medium text-sm">{user.username}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-muted-foreground">
-              No {dialogTitle.toLowerCase()} found.
-            </p>
-          )}
-        </DialogContent>
-      </Dialog>
+        {/* Posts */}
+        <Tabs defaultValue="posts" className="mt-6 space-y-4">
+          <TabsList className="hidden" />
+          <TabsContent value="posts" className="space-y-4">
+            {enrichedPosts.length > 0 ? (
+              enrichedPosts.map((post) => (
+                <PostCard
+                  key={post._id}
+                  post={post}
+                  currentUserId={loggedInUserId || ""}
+                  showEditDelete={false}
+                  onEditPost={() => { }}
+                  onDeletePost={() => { }}
+                  editingPostId={null}
+                  editMessage={""}
+                  editPostType={""}
+                  setEditMessage={() => { }}
+                  setEditPostType={() => { }}
+                  onSaveEdit={() => { }}
+                  onCancelEdit={() => { }}
+                  onCommentAdded={(comment) => {
+                    setEnrichedPosts((prev) =>
+                      prev.map((p) =>
+                        p._id === post._id
+                          ? { ...p, comments: [...(p.comments || []), comment] }
+                          : p
+                      )
+                    );
+                  }}
+                />
+              ))
+            ) : (
+              <Card className="border-0 shadow-none">
+                <CardContent className="p-6 text-center text-muted-foreground">
+                  No posts yet.
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        {/* Followers/Following/Mutuals Modal */}
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="sm:max-w-md rounded-xl shadow-xl">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-bold">{dialogTitle}</DialogTitle>
+            </DialogHeader>
+            {userList.length > 0 ? (
+              <div className="flex flex-col gap-3">
+                {userList.map((user, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-3 cursor-pointer hover:bg-primary/10 rounded p-2 transition"
+                    onClick={() => navigate(`/profile/${user.user_id}`)}
+                  >
+                    <Avatar className="h-10 w-10 shadow">
+                      <AvatarImage
+                        src={user.profilePicture || "/placeholder.svg"}
+                        alt={user.username}
+                      />
+                      <AvatarFallback>{user.username?.[0]}</AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium text-sm">{user.username}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground">
+                No {dialogTitle.toLowerCase()} found.
+              </p>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }

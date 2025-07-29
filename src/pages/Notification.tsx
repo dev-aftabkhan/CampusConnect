@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { toast } from "@/components/ui/use-toast";
 
 interface NotificationType {
     notification_id: string;
@@ -24,6 +25,8 @@ interface UserProfile {
 
 const Notification = () => {
     const [notifications, setNotifications] = useState<NotificationType[]>([]);
+    // Track previous notifications length
+    const [prevNotifCount, setPrevNotifCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [unreadCount, setUnreadCount] = useState(0);
     const navigate = useNavigate();
@@ -92,6 +95,17 @@ const Notification = () => {
     useEffect(() => {
         fetchNotifications();
     }, []);
+
+    // Toast for new notification
+    useEffect(() => {
+        if (notifications.length > prevNotifCount) {
+            toast({
+                title: "You have a new notification!",
+                variant: "default",
+            });
+        }
+        setPrevNotifCount(notifications.length);
+    }, [notifications]);
 
     const renderContent = (notif: NotificationType) => {
         const { type, sender, content } = notif;

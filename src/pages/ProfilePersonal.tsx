@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 import {
   Dialog,
@@ -37,22 +38,25 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "@/components/ui/use-toast";
 
 export default function ProfilePersonal() {
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [toastMsg, setToastMsg] = useState("");
   const [showImageEditor, setShowImageEditor] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogTitle, setDialogTitle] = useState("");
   const [userList, setUserList] = useState<any[]>([]);
+  const [userListLoading, setUserListLoading] = useState(false);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editMessage, setEditMessage] = useState("");
   const [editPostType, setEditPostType] = useState("");
   const [enrichedPosts, setEnrichedPosts] = useState<any[]>([]);
+  const [postsLoading, setPostsLoading] = useState(false);
 
   useEffect(() => {
     async function fetchProfile() {
@@ -71,34 +75,29 @@ export default function ProfilePersonal() {
 
   useEffect(() => {
     if (!profileData?.posts || !profileData.username) return;
-
+    setPostsLoading(true);
     const author = {
       username: profileData.username,
       profilePicture: profileData.profilePicture,
     };
-
     const enriched = profileData.posts.map((post) => {
       const enrichedComments = post.comments.map((comment: any) => ({
         ...comment,
         username: author.username,
         profilePicture: author.profilePicture,
       }));
-
       return {
         ...post,
         author,
         comments: enrichedComments,
       };
     });
-
-    setEnrichedPosts(enriched);
+    setTimeout(() => {
+      setEnrichedPosts(enriched);
+      setPostsLoading(false);
+    }, 500); // Simulate loading for cool effect
   }, [profileData]);
 
-
-  const showToast = (message: string, duration = 3000) => {
-    setToastMsg(message);
-    setTimeout(() => setToastMsg(""), duration);
-  };
 
   const handleProfilePictureChange = async (
     e: React.ChangeEvent<HTMLInputElement>
@@ -117,9 +116,9 @@ export default function ProfilePersonal() {
       }));
       setShowImageEditor(false);
       setPreview(null);
-      showToast("Profile picture updated");
+      toast({ title: "Profile picture updated", variant: "default" });
     } catch (err) {
-      showToast("Failed to upload profile picture");
+      toast({ title: "Failed to upload profile picture", variant: "destructive" });
     } finally {
       setUploading(false);
     }
@@ -129,6 +128,7 @@ export default function ProfilePersonal() {
     if (!profileData?.user_id) return;
     setDialogTitle(type === "followers" ? "Followers" : "Following");
     setDialogOpen(true);
+    setUserListLoading(true);
     try {
       const data =
         type === "followers"
@@ -137,6 +137,8 @@ export default function ProfilePersonal() {
       setUserList(type === "followers" ? data.followers : data.following);
     } catch (err) {
       setUserList([]);
+    } finally {
+      setTimeout(() => setUserListLoading(false), 400); // for cool effect
     }
   };
 
@@ -152,9 +154,9 @@ export default function ProfilePersonal() {
         ),
       }));
       setEditingPostId(null);
-      showToast("Post updated!");
+      toast({ title: "Post updated!", variant: "default" });
     } catch (err) {
-      showToast("Failed to update post");
+      toast({ title: "Failed to update post", variant: "destructive" });
     }
   };
 
@@ -165,9 +167,9 @@ export default function ProfilePersonal() {
         ...prev,
         posts: prev.posts.filter((p: any) => p.post_id !== postId),
       }));
-      showToast("Post deleted!");
+      toast({ title: "Post deleted!", variant: "default" });
     } catch (err) {
-      showToast("Failed to delete post");
+      toast({ title: "Failed to delete post", variant: "destructive" });
     }
   };
 
@@ -179,14 +181,12 @@ export default function ProfilePersonal() {
         phone: profileData.phone,
         bio: profileData.bio,
       });
-
       const refreshed = await getCurrentUser();
       setProfileData(refreshed);
       setIsEditing(false);
-      showToast("Profile updated successfully");
+      toast({ title: "Profile updated successfully", variant: "default" });
     } catch (err) {
-      console.error("Failed to save profile", err);
-      showToast("Failed to update profile");
+      toast({ title: "Failed to update profile", variant: "destructive" });
     }
   };
 
@@ -211,11 +211,7 @@ export default function ProfilePersonal() {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-8 relative">
-      {toastMsg && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-black text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-fadeIn">
-          {toastMsg}
-        </div>
-      )}
+      {/* Remove local toastMsg banner */}
 
       <Card className="relative overflow-hidden shadow-lg border-0 max-w-4xl mx-auto">
         <div className="h-40 bg-gradient-to-r from-primary to-indigo-600 w-full rounded-t-xl" />
@@ -389,7 +385,13 @@ export default function ProfilePersonal() {
           <TabsTrigger value="posts">Posts</TabsTrigger>
         </TabsList>
         <TabsContent value="posts" className="mt-6 space-y-4">
-          {enrichedPosts.length > 0 ? (
+          {postsLoading ? (
+            <div className="flex flex-col items-center gap-6">
+              {[...Array(2)].map((_, i) => (
+                <Skeleton key={i} className="w-full h-40 rounded-xl" />
+              ))}
+            </div>
+          ) : enrichedPosts.length > 0 ? (
             <div className="flex flex-col items-center gap-6">
               {enrichedPosts.map((post) => (
                 <PostCard
@@ -397,9 +399,6 @@ export default function ProfilePersonal() {
                   post={post}
                   currentUserId={profileData.user_id || ""}
                   showEditDelete={true}
-                  onLike={() => { }}
-                  onDeleteComment={() => { }}
-                  onAddComment={() => { }}
                   onEditPost={(postId) => {
                     setEditingPostId(postId);
                     const postToEdit = enrichedPosts.find((p) => p._id === postId);
@@ -414,9 +413,17 @@ export default function ProfilePersonal() {
                   editPostType={editPostType}
                   setEditMessage={setEditMessage}
                   setEditPostType={setEditPostType}
+                  onCommentAdded={(comment) => {
+                    setEnrichedPosts((prev) =>
+                      prev.map((p) =>
+                        p._id === post._id
+                          ? { ...p, comments: [...(p.comments || []), comment] }
+                          : p
+                      )
+                    );
+                  }}
                 />
-              ))
-              }
+              ))}
             </div>
           ) : (
             <Card>
@@ -437,10 +444,23 @@ export default function ProfilePersonal() {
           <DialogHeader>
             <DialogTitle>Followers</DialogTitle>
           </DialogHeader>
-          {userList.length > 0 ? (
+          {userListLoading ? (
+            <div className="flex flex-col gap-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <Skeleton className="h-5 w-32 rounded" />
+                </div>
+              ))}
+            </div>
+          ) : userList.length > 0 ? (
             <div className="flex flex-col gap-3">
               {userList.map((user: any, index: number) => (
-                <div key={index} className="flex items-center gap-3">
+                <div
+                  key={index}
+                  className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 rounded p-2 transition"
+                  onClick={() => navigate(`/profile/${user.user_id}`)}
+                >
                   <Avatar className="h-10 w-10">
                     <AvatarImage
                       src={user.profilePicture || "/placeholder.svg"}
@@ -467,10 +487,23 @@ export default function ProfilePersonal() {
           <DialogHeader>
             <DialogTitle>Following</DialogTitle>
           </DialogHeader>
-          {userList.length > 0 ? (
+          {userListLoading ? (
+            <div className="flex flex-col gap-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <Skeleton className="h-5 w-32 rounded" />
+                </div>
+              ))}
+            </div>
+          ) : userList.length > 0 ? (
             <div className="flex flex-col gap-3">
               {userList.map((user: any, index: number) => (
-                <div key={index} className="flex items-center gap-3">
+                <div
+                  key={index}
+                  className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 rounded p-2 transition"
+                  onClick={() => navigate(`/profile/${user.user_id}`)}
+                >
                   <Avatar className="h-10 w-10">
                     <AvatarImage
                       src={user.profilePicture || "/placeholder.svg"}

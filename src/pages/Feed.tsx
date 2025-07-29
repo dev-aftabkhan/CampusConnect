@@ -13,6 +13,7 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/use-toast";
 
 const userData = JSON.parse(localStorage.getItem("user") || "{}");
 const currentUserId = userData.id || "";
@@ -63,6 +64,7 @@ export default function Feed() {
 
       setPosts(postsWithExtras);
     } catch (err) {
+      toast({ title: "Error fetching posts.", variant: "destructive" });
       console.error("Error fetching posts:", err);
     } finally {
       setIsLoading(false);

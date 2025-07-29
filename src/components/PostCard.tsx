@@ -20,6 +20,7 @@ import {
   CarouselNext,
 } from "@/components/ui/carousel";
 import { likePost, unlikePost, addComment, deleteComment } from "@/api/post";
+import { toast } from "@/components/ui/use-toast";
 
 export function PostCard({
   post,
@@ -34,6 +35,7 @@ export function PostCard({
   setEditPostType,
   onSaveEdit,
   onCancelEdit,
+  onCommentAdded,
 }) {
   const [liked, setLiked] = useState(post.likes.includes(currentUserId));
   const [likeCount, setLikeCount] = useState(post.likes.length);
@@ -41,6 +43,7 @@ export function PostCard({
   const [newComment, setNewComment] = useState("");
   const [showCommentBox, setShowCommentBox] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     setLiked(post.likes.includes(currentUserId));
@@ -50,18 +53,45 @@ export function PostCard({
 
   const isEditing = showEditDelete && editingPostId === post.post_id;
 
+  // Helper to refresh post data (comments, likes)
+  const refreshPost = async () => {
+    setRefreshing(true);
+    try {
+      const res = await import("@/api/post").then(m => m.getPostById(post.post_id));
+      const freshPost = res.data;
+      setLikeCount(freshPost.likes.length);
+      setLiked(freshPost.likes.includes(currentUserId));
+      setCommentList(
+        (freshPost.comments || []).map((c) => ({
+          comment_id: c.comment_id || c._id,
+          text: c.text,
+          username: c.username || c.user?.username || "user",
+          user: c.user?._id || c.user || "",
+          profilePicture: c.profilePicture || c.user?.profilePicture || "",
+        }))
+      );
+    } catch (error: any) {
+      toast({ title: error?.response?.data?.message || "Failed to refresh post", variant: "destructive" });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const handleLike = async () => {
     try {
       if (liked) {
         await unlikePost(post.post_id);
         setLikeCount((prev) => prev - 1);
+        toast({ title: "Unliked post", variant: "default" });
       } else {
         await likePost(post.post_id);
         setLikeCount((prev) => prev + 1);
+        toast({ title: "Liked post", variant: "default" });
       }
       setLiked((prev) => !prev);
-    } catch (error) {
-      console.error("Failed to update like:", error);
+      await refreshPost();
+    } catch (error: any) {
+      toast({ title: error?.response?.data?.message || "Failed to update like", variant: "destructive" });
     }
   };
 
@@ -74,19 +104,22 @@ export function PostCard({
         text: newComment,
         mentions,
       });
-
       const addedComment = {
         comment_id: res.data.comment_id || res.data._id,
         text: res.data.text,
-        username: post.currentUser?.username || "You",
-        user: currentUserId,
-        profilePicture: post.currentUser?.profilePicture || "",
+        username: res.data.username || post.currentUser?.username || "You",
+        user: res.data.user || currentUserId,
+        profilePicture: res.data.profilePicture || post.currentUser?.profilePicture || "",
       };
-
       setCommentList((prev) => [...prev, addedComment]);
       setNewComment("");
-    } catch (error) {
-      console.error("Failed to add comment:", error);
+      toast({ title: "Comment added!", variant: "default" });
+      if (onCommentAdded) {
+        onCommentAdded(addedComment);
+      }
+      await refreshPost();
+    } catch (error: any) {
+      toast({ title: error?.response?.data?.message || "Failed to add comment", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -98,8 +131,10 @@ export function PostCard({
       setCommentList((prev) =>
         prev.filter((c) => c.comment_id !== commentId)
       );
-    } catch (error) {
-      console.error("Failed to delete comment:", error);
+      toast({ title: "Comment deleted!", variant: "default" });
+      await refreshPost();
+    } catch (error: any) {
+      toast({ title: error?.response?.data?.message || "Failed to delete comment", variant: "destructive" });
     }
   };
 

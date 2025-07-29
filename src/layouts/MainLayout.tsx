@@ -7,6 +7,7 @@ import { logout as logoutApi } from "@/api/auth";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { getOwnUserProfile } from "@/api/user";
+import { toast } from "@/components/ui/use-toast";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -35,19 +36,34 @@ export default function MainLayout({ children }: MainLayoutProps) {
       sessionStorage.clear();
       setLoading(false);
       navigate("/login", { replace: true });
-      window.location.href = "/login";
+      // No reload, rely on state/context for live update
     }
   };
 
   const [user, setUser] = useState<{ username?: string; email?: string; profilePicture?: string } | null>(null);
 
   const [notifications, setNotifications] = useState<any[]>([]);
+  // Track previous notifications length
+  const [prevNotifCount, setPrevNotifCount] = useState(0);
 
   useEffect(() => {
     fetch("/api/notifications")
       .then((res) => res.json())
-      .then((data) => setNotifications(data.notifications || []));
+      .then((data) => {
+        setNotifications(data.notifications || []);
+      });
   }, []);
+
+  // Toast for new notification
+  useEffect(() => {
+    if (notifications.length > prevNotifCount) {
+      toast({
+        title: "You have a new notification!",
+        variant: "default",
+      });
+    }
+    setPrevNotifCount(notifications.length);
+  }, [notifications]);
 
 
   useEffect(() => {

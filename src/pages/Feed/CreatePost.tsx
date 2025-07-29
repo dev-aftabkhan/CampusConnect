@@ -11,6 +11,7 @@ import { Command, CommandInput, CommandItem } from "@/components/ui/command";
 import { createPostWithImage } from "@/api/post";
 import { getUserByUsername } from "@/api/user";
 import { getOwnUserProfile } from "@/api/user";
+import { toast } from "@/components/ui/use-toast";
 
 export function CreatePost() {
   const [content, setContent] = useState("");
@@ -101,11 +102,11 @@ export function CreatePost() {
     const postType = cleanedTags.join(",");
 
     if (!content.trim() && media.length === 0) {
-      alert("Please write something or add an image.");
+      toast({ title: "Please write something or add an image.", variant: "destructive" });
       return;
     }
     if (!postType) {
-      alert("Please add at least one tag.");
+      toast({ title: "Please add at least one tag.", variant: "destructive" });
       return;
     }
 
@@ -122,7 +123,9 @@ export function CreatePost() {
       setTags("");
       setMedia([]);
       setMentions([]);
+      toast({ title: "Post created successfully!", variant: "default" });
     } catch (e) {
+      toast({ title: "Failed to create post.", variant: "destructive" });
       console.error(e);
     } finally {
       setIsPosting(false);

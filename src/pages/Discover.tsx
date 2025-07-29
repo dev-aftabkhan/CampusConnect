@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "@/components/ui/use-toast";
 
 export default function Discover() {
   const [query, setQuery] = useState("");
@@ -41,6 +42,7 @@ export default function Discover() {
           setResults(user ? [user] : []);
         }
       } catch (err) {
+        toast({ title: "Search error", variant: "destructive" });
         console.error("Search error:", err);
         setResults([]);
       } finally {

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BookOpen, Eye, EyeOff, Mail } from "lucide-react";
 import { login } from "@/api/auth";
+import { toast } from "@/components/ui/use-toast";
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -15,7 +16,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [notification, setNotification] = useState<{ message: string; type: "success" | "error" | null }>({ message: "", type: null });
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -24,15 +24,17 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await login(formData.identifier, formData.password);
-      setNotification({ message: "Login successful! Redirecting...", type: "success" });
-      setTimeout(() => setNotification({ message: "", type: null }), 5000);
-      setTimeout(() => {
-        navigate("/", { replace: true });
-        window.location.reload();
-      }, 1200);
+      toast({
+        title: "Login successful! Redirecting...",
+        variant: "default",
+      });
+      navigate("/", { replace: true });
+      // No reload, rely on state/context for live update
     } catch (err: any) {
-      setNotification({ message: err?.response?.data?.message || "Invalid credentials", type: "error" });
-      setTimeout(() => setNotification({ message: "", type: null }), 5000);
+      toast({
+        title: err?.response?.data?.message || "Invalid credentials",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -98,14 +100,7 @@ export default function LoginPage() {
                     </button>
                   </div>
                   {/* Notification */}
-                  {notification.message && (
-                    <div
-                      className={`rounded-md px-4 py-2 text-center font-medium transition-all duration-300 text-sm
-                        ${notification.type === "success" ? "bg-green-100 text-green-700 border border-green-300" : "bg-red-100 text-red-700 border border-red-300"}`}
-                    >
-                      {notification.message}
-                    </div>
-                  )}
+                  {/* Removed notification banner, now using toast */}
                   {/* Submit */}
                   <Button
                     type="submit"

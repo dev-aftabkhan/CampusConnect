@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import "@/styles/scrollbar.css";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { BookOpen, Eye, EyeOff } from "lucide-react";
 import { register as registerApi } from "@/api/auth";
 import AOS from "aos";
+import { toast } from "@/components/ui/use-toast";
 
 export default function Register() {
     const [formData, setFormData] = useState({
@@ -24,7 +26,6 @@ export default function Register() {
         api?: string;
     }>({});
     const [isLoading, setIsLoading] = useState(false);
-    const [notification, setNotification] = useState<{ message: string; type: "success" | "error" | null }>({ message: "", type: null });
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -48,12 +49,16 @@ export default function Register() {
         setIsLoading(true);
         try {
             await registerApi(formData.username, formData.email, formData.phone, formData.password);
-            setNotification({ message: "Registration successful! Redirecting to login...", type: "success" });
-            setTimeout(() => setNotification({ message: "", type: null }), 5000);
+            toast({
+                title: "Registration successful! Redirecting to login...",
+                variant: "default",
+            });
             setTimeout(() => navigate("/login"), 1200);
         } catch (error: any) {
-            setNotification({ message: error?.response?.data?.message || "Registration failed. Please try again.", type: "error" });
-            setTimeout(() => setNotification({ message: "", type: null }), 5000);
+            toast({
+                title: error?.response?.data?.message || "Registration failed. Please try again.",
+                variant: "destructive",
+            });
         } finally {
             setIsLoading(false);
         }
@@ -63,17 +68,19 @@ export default function Register() {
         <div className="min-h-screen flex items-center justify-center bg-[#f5f3ef] px-4">
             <div className="w-full max-w-4xl h-[90vh] flex md:flex-row rounded-2xl shadow-2xl border border-white/40 bg-white/60 backdrop-blur-lg overflow-hidden">
                 {/* Left - Form */}
-                <div className="flex-1 flex items-center justify-center px-6 py-10 relative">
-                    <div className="w-full max-w-md space-y-6">
-                        {/* Logo */}
-                        <div className="absolute top-6 left-6 flex items-center gap-2">
-                            <div className="p-2 rounded-xl bg-white/20 backdrop-blur flex items-center">
-                                <BookOpen className="h-6 w-6 text-primary drop-shadow" />
-                            </div>
-                            <span className="text-lg font-extrabold tracking-tight text-primary drop-shadow" style={{ fontFamily: "Inter, Arial, sans-serif" }}>
-                                CampusConnect
-                            </span>
+                <div className="flex-1 flex flex-col items-center justify-center px-6 py-10 relative overflow-y-auto scrollbar-thin">
+// Add this to the top or bottom of the file if not already present
+import "@/styles/scrollbar.css";
+                    {/* Logo */}
+                    <div className="flex items-center gap-2 mb-8 mt-2">
+                        <div className="p-2 rounded-xl bg-white/20 backdrop-blur flex items-center">
+                            <BookOpen className="h-6 w-6 text-primary drop-shadow" />
                         </div>
+                        <span className="text-lg font-extrabold tracking-tight text-primary drop-shadow" style={{ fontFamily: "Inter, Arial, sans-serif" }}>
+                            CampusConnect
+                        </span>
+                    </div>
+                    <div className="w-full max-w-md flex flex-col justify-center space-y-6">
                         <Card className="bg-white/80 border-none shadow-none">
                             <CardHeader className="text-center pb-0">
                                 <CardTitle className="text-2xl text-gray-900 font-bold">Sign Up</CardTitle>
@@ -151,14 +158,7 @@ export default function Register() {
                                         {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
                                     </div>
                                     {/* Notification */}
-                                    {notification.message && (
-                                        <div
-                                            className={`rounded-md px-4 py-2 text-center font-medium transition-all duration-300 text-sm
-                                                ${notification.type === "success" ? "bg-green-100 text-green-700 border border-green-300" : "bg-red-100 text-red-700 border border-red-300"}`}
-                                        >
-                                            {notification.message}
-                                        </div>
-                                    )}
+                                    {/* Removed notification banner, now using toast */}
                                     {/* Submit */}
                                     <Button
                                         type="submit"
