@@ -26,7 +26,6 @@ import {
   getMutuals,
   followUser,
   unfollowUser,
-  updateProfile,
 } from "@/api/user";
 
 interface Post {
@@ -69,12 +68,11 @@ export default function ProfileUser() {
   const [isMutual, setIsMutual] = useState(false);
   const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
 
-  const [editMode, setEditMode] = useState(false);
-  const [editUsername, setEditUsername] = useState("");
-  const [editEmail, setEditEmail] = useState("");
-  const [editPhone, setEditPhone] = useState("");
-  const [editBio, setEditBio] = useState("");
   const [enrichedPosts, setEnrichedPosts] = useState<Post[]>([]);
+  const [followStatus, setFollowStatus] = useState<
+    "not following" | "Requested" | "incoming request" | "connected" | null
+  >(null);
+
 
   useEffect(() => {
     async function fetchProfile() {
@@ -85,11 +83,7 @@ export default function ProfileUser() {
         const profileRes = await getUserProfileById(userId);
         const user = profileRes.user;
         setProfileData(user);
-
-        setEditUsername(user.username);
-        setEditEmail(user.email);
-        setEditPhone(user.phone || "");
-        setEditBio(user.bio || "");
+        setFollowStatus(user.status);
 
         const ownProfileRes = await getOwnUserProfile();
         const myUserId = ownProfileRes.user.user_id;
@@ -143,8 +137,8 @@ export default function ProfileUser() {
         type === "followers"
           ? await getFollowers(profileData.user_id)
           : type === "following"
-          ? await getFollowing(profileData.user_id)
-          : await getMutuals(profileData.user_id);
+            ? await getFollowing(profileData.user_id)
+            : await getMutuals(profileData.user_id);
 
       setUserList(data[type]);
     } catch {
@@ -152,54 +146,42 @@ export default function ProfileUser() {
     }
   };
 
+  const handleAcceptFollow = async () => {
+    if (!profileData) return;
+    try {
+      await followUser(profileData.user_id); // assuming 2nd arg indicates acceptance
+      setFollowStatus("connected");
+    } catch (err) {
+      console.error("❌ Accept follow failed", err);
+    }
+  };
+  
+  const handleDeclineFollow = async () => {
+    if (!profileData) return;
+    try {
+      await unfollowUser(profileData.user_id); // or a separate declineFollow API
+      setFollowStatus("not following");
+    } catch (err) {
+      console.error("❌ Decline follow failed", err);
+    }
+  };
+
+  
   const handleFollowToggle = async () => {
     if (!profileData) return;
     try {
-      if (isFollowing) {
+      if (followStatus === "connected") {
         await unfollowUser(profileData.user_id);
-        setIsFollowing(false);
-        setIsMutual(false);
-      } else {
+        setFollowStatus("not following");
+      } else if (followStatus === "not following") {
         await followUser(profileData.user_id);
-        setIsFollowing(true);
-        const mutualsRes = await getMutuals(userId);
-        setIsMutual(
-          mutualsRes.mutuals.some((u: any) => u.user_id === loggedInUserId)
-        );
+        setFollowStatus("Requested");
       }
     } catch (err) {
-      console.error("Follow toggle failed", err);
+      console.error("❌ Follow toggle failed", err);
     }
   };
-
-  const handleSaveProfile = async () => {
-    console.log("📝 Save clicked with values:", {
-      username: editUsername,
-      email: editEmail,
-      phone: editPhone,
-      bio: editBio,
-    });
-
-    try {
-      const response = await updateProfile({
-        username: editUsername,
-        email: editEmail,
-        phone: editPhone,
-        bio: editBio,
-      });
-
-      console.log("✅ Profile updated", response);
-
-      setEditMode(false);
-
-      if (userId) {
-        const refreshed = await getUserProfileById(userId);
-        setProfileData(refreshed.user);
-      }
-    } catch (err) {
-      console.error("❌ Failed to save profile", err);
-    }
-  };
+  
 
   if (loading)
     return <div className="text-center py-12 text-lg">Loading profile...</div>;
@@ -218,104 +200,99 @@ export default function ProfileUser() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
       <Card>
         <div className="h-32 bg-gradient-to-r from-primary to-indigo-600" />
         <CardContent className="-mt-16 pb-6 relative">
-          <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
-            <Avatar className="h-24 w-24 border-4 border-background">
-              <AvatarImage
-                src={profileData.profilePicture || "/placeholder.svg"}
-                alt={profileData.username}
-              />
-              <AvatarFallback>{profileData.username?.[0]}</AvatarFallback>
-            </Avatar>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+            {/* Left: Avatar + Info */}
+            <div className="flex gap-4 items-start">
+              <Avatar className="h-24 w-24 border-4 border-background">
+                <AvatarImage
+                  src={profileData.profilePicture || "/placeholder.svg"}
+                  alt={profileData.username}
+                />
+                <AvatarFallback>{profileData.username?.[0]}</AvatarFallback>
+              </Avatar>
 
-            <div className="flex-1 w-full">
-              <div className="flex flex-col md:flex-row justify-between gap-2 items-start md:items-center">
-                {editMode ? (
-                  <div className="flex flex-col gap-2 w-full">
-                    <input
-                      className="border px-3 py-1 rounded-md"
-                      value={editUsername}
-                      onChange={(e) => setEditUsername(e.target.value)}
-                    />
-                    <input
-                      className="border px-3 py-1 rounded-md"
-                      value={editEmail}
-                      onChange={(e) => setEditEmail(e.target.value)}
-                    />
-                    <input
-                      className="border px-3 py-1 rounded-md"
-                      value={editPhone}
-                      onChange={(e) => setEditPhone(e.target.value)}
-                    />
-                    <textarea
-                      className="border px-3 py-1 rounded-md"
-                      value={editBio}
-                      onChange={(e) => setEditBio(e.target.value)}
-                      placeholder="Bio"
-                    />
-                  </div>
-                ) : (
-                  <div className="flex flex-col md:flex-row items-start md:items-center gap-2">
-                    <h1 className="text-2xl font-bold">
-                      {profileData.username}
-                    </h1>
-                    <p className="text-muted-foreground text-sm">
-                      {profileData.email}
-                    </p>
-                  </div>
+              <div className="space-y-1">
+                <h1 className="text-2xl font-bold">{profileData.username}</h1>
+                <p className="text-muted-foreground text-sm">{profileData.email}</p>
+                {profileData.bio && (
+                  <p className="text-sm text-muted-foreground">{profileData.bio}</p>
                 )}
-
-                {profileData.user_id === loggedInUserId ? (
-                  editMode ? (
-                    <button
-                      onClick={handleSaveProfile}
-                      className="px-4 py-1 text-sm bg-green-500 text-white rounded-md hover:bg-green-600"
-                    >
-                      Save
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setEditMode(true)}
-                      className="px-4 py-1 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                    >
-                      Edit
-                    </button>
-                  )
-                ) : (
-                  <button
-                    onClick={handleFollowToggle}
-                    className={`px-4 py-1 text-sm rounded-md font-medium transition-colors ${
-                      isMutual || isFollowing
-                        ? "bg-red-500 text-white hover:bg-red-600"
-                        : "bg-primary text-white hover:bg-primary/90"
-                    }`}
-                  >
-                    {isMutual || isFollowing ? "Unfollow" : "Follow"}
-                  </button>
-                )}
-              </div>
-
-              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mt-3">
-                <div className="flex items-center gap-1">
-                  <BookOpen className="h-4 w-4" />
-                  <span>{profileData.user_id}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Phone className="h-4 w-4" />
-                  <span>{profileData.phone || "Not provided"}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-4 w-4" />
-                  <span>
-                    Joined{" "}
-                    {new Date(profileData.createdAt).toLocaleDateString()}
-                  </span>
+                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mt-2">
+                  {profileData.phone && (
+                    <div className="flex items-center gap-1">
+                      <Phone className="h-4 w-4" />
+                      <span>{profileData.phone}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    <span>
+                      Joined{" "}
+                      {new Date(profileData.createdAt).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "long",
+                      })}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
+
+            {/* Right: Follow Button */}
+            {/* Right: Follow Button (Dynamic per followStatus) */}
+            {profileData.user_id !== loggedInUserId && (
+                <>
+                  {followStatus === "not following" && (
+                    <button
+                      onClick={handleFollowToggle}
+                      className="mt-4 md:mt-0 px-4 py-2 text-sm rounded-md font-medium bg-white text-black hover:bg-gray-200 transition-colors"
+                    >
+                      Follow
+                    </button>
+                  )}
+
+                  {followStatus === "Requested" && (
+                    <button
+                      disabled
+                      className="mt-4 md:mt-0 px-4 py-2 text-sm rounded-md font-medium bg-yellow-400 text-white cursor-not-allowed"
+                    >
+                      Requested
+                    </button>
+                  )}
+
+                  {followStatus === "incoming request" && (
+                    <div className="flex gap-2 mt-4 md:mt-0">
+                      <button
+                        onClick={handleAcceptFollow}
+                        className="px-4 py-2 text-sm rounded-md font-medium bg-green-500 text-white hover:bg-green-600 transition-colors"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        onClick={handleDeclineFollow}
+                        className="px-4 py-2 text-sm rounded-md font-medium bg-gray-300 text-black hover:bg-gray-400 transition-colors"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  )}
+
+                  {followStatus === "connected" && (
+                    <button
+                      onClick={handleFollowToggle}
+                      className="mt-4 md:mt-0 px-4 py-2 text-sm rounded-md font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
+                    >
+                      Unfollow
+                    </button>
+                  )}
+                </>
+              )}
+
+
           </div>
         </CardContent>
       </Card>
@@ -345,9 +322,8 @@ export default function ProfileUser() {
         ].map((stat, index) => (
           <Card
             key={index}
-            className={`text-center p-4 hover:shadow-lg transition-shadow ${
-              stat.onClick ? "cursor-pointer" : ""
-            }`}
+            className={`text-center p-4 hover:shadow-lg transition-shadow ${stat.onClick ? "cursor-pointer" : ""
+              }`}
             onClick={stat.onClick}
           >
             <stat.icon className="h-6 w-6 mx-auto text-primary mb-1" />
@@ -368,18 +344,18 @@ export default function ProfileUser() {
                 post={post}
                 currentUserId={loggedInUserId || ""}
                 showEditDelete={false}
-                onLike={() => {}}
-                onDeleteComment={() => {}}
-                onAddComment={() => {}}
-                onEditPost={() => {}}
-                onDeletePost={() => {}}
+                onLike={() => { }}
+                onDeleteComment={() => { }}
+                onAddComment={() => { }}
+                onEditPost={() => { }}
+                onDeletePost={() => { }}
                 editingPostId={null}
                 editMessage={""}
                 editPostType={""}
-                setEditMessage={() => {}}
-                setEditPostType={() => {}}
-                onSaveEdit={() => {}}
-                onCancelEdit={() => {}}
+                setEditMessage={() => { }}
+                setEditPostType={() => { }}
+                onSaveEdit={() => { }}
+                onCancelEdit={() => { }}
               />
             ))
           ) : (

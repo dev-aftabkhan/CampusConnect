@@ -44,37 +44,58 @@ const Notification = () => {
 
   const markAsRead = async (id: string) => {
     try {
-      await axios.patch(`${API_BASE}/notifications/${id}/read`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.patch(
+        `${API_BASE}/notifications/${id}/read`,
+        {}, // no data to send
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setNotifications((prev) =>
-        prev.map((n) => (n.notification_id === id ? { ...n, read: true } : n))
+        prev.map((n) =>
+          n.notification_id === id ? { ...n, read: true } : n
+        )
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (err) {
       console.error("Failed to mark notification as read", err);
     }
-  };
+  };  
 
   useEffect(() => {
     fetchNotifications();
   }, []);
 
   const renderContent = (notif: NotificationType) => {
-    const { type, username, content } = notif;
+    const { type, username, content, from } = notif;
+  
+    const handleClick = () => {
+      navigate(`/profile/${from}`);
+    };
+  
+    const usernameLink = (
+      <button
+        onClick={handleClick}
+        className="font-semibold text-primary hover:underline"
+      >
+        {username}
+      </button>
+    );
+  
     switch (type) {
       case "like":
-        return <p><strong>{username}</strong> liked your post.</p>;
+        return <p>{usernameLink} liked your post.</p>;
       case "follow":
-        return <p><strong>{username}</strong> started following you.</p>;
+      case "follow_request":
+        return <p>{usernameLink} started following you.</p>;
       case "comment":
-        return <p><strong>{username}</strong> commented: “{content}”</p>;
+        return <p>{usernameLink} commented: “{content}”</p>;
       case "message":
-        return <p><strong>{username}</strong> sent you a message: “{content}”</p>;
+        return <p>{usernameLink} sent you a message: “{content}”</p>;
       default:
-        return <p><strong>{username}</strong> sent you a notification.</p>;
+        return <p>{usernameLink} sent you a notification.</p>;
     }
-  };
+  };  
 
   if (loading) return <p className="text-center py-6">Loading...</p>;
 
@@ -85,27 +106,39 @@ const Notification = () => {
         <p className="text-muted-foreground">You're all caught up!</p>
       ) : (
         notifications.map((notif) => (
-          <Card
+          <div
             key={notif.notification_id}
-            className={`flex items-center p-3 space-x-4 ${notif.read ? "opacity-70" : "bg-muted"}`}
+            onClick={() => navigate(`/profile/${notif.from}`)}
+            className="cursor-pointer"
           >
-            <Avatar>
-              <AvatarImage src={notif.profilePicture || "/placeholder.svg"} />
-              <AvatarFallback>{notif.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
-            </Avatar>
-            <CardContent className="flex-1 px-0 py-0">
-              {renderContent(notif)}
-              <p className="text-xs text-muted-foreground">
-                {new Date(notif.createdAt).toLocaleString()}
-              </p>
-            </CardContent>
-            {!notif.read && (
-              <Button variant="ghost" size="sm" onClick={() => markAsRead(notif.notification_id)}>
-                Mark as read
-              </Button>
-            )}
-          </Card>
-        ))
+            <Card
+              className={`flex items-center p-3 space-x-4 ${notif.read ? "opacity-70" : "bg-muted"}`}
+            >
+              <Avatar>
+                <AvatarImage src={notif.profilePicture || "/placeholder.svg"} />
+                <AvatarFallback>{notif.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+              </Avatar>
+              <CardContent className="flex-1 px-0 py-0">
+                {renderContent(notif)}
+                <p className="text-xs text-muted-foreground">
+                  {new Date(notif.createdAt).toLocaleString()}
+                </p>
+              </CardContent>
+              {!notif.read && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation(); // ⛔ Prevent navigation when clicking the button
+                    markAsRead(notif.notification_id);
+                  }}
+                >
+                  Mark as read
+                </Button>
+              )}
+            </Card>
+          </div>
+        ))        
       )}
     </div>
   );

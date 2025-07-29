@@ -41,6 +41,15 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
   const [user, setUser] = useState<{ username?: string; email?: string; profilePicture?: string } | null>(null);
 
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("/api/notifications")
+      .then((res) => res.json())
+      .then((data) => setNotifications(data.notifications || []));
+  }, []);
+
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -107,8 +116,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
               <Bell className="h-5 w-5 text-muted-foreground" />
               {unreadCount > 0 && (
                 <>
-                  <span className="absolute top-0 right-0 mt-0.5 mr-0.5 h-2 w-2 rounded-full bg-destructive border border-background z-10" />
-                  <span className="absolute top-0 right-0 mt-0.5 mr-0.5 h-2 w-2 rounded-full bg-destructive opacity-75 animate-ping z-0" />
+                  <span className="absolute top-0 right-0 mt-0.5 mr-0.5 h-2 w-2 rounded-full bg-red-500 border border-background z-10" />
+                  <span className="absolute top-0 right-0 mt-0.5 mr-0.5 h-2 w-2 rounded-full bg-red-500 opacity-75 animate-ping z-0" />
                 </>
               )}
             </Link>

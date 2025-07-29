@@ -70,117 +70,30 @@ export default function ProfilePersonal() {
   }, []);
 
   useEffect(() => {
-    const enrichPosts = async () => {
-      if (!profileData?.posts) return;
+    if (!profileData?.posts || !profileData.username) return;
 
-      const userCache = new Map<string, any>();
-
-      const enriched = await Promise.all(
-        profileData.posts.map(async (post: any) => {
-          const enrichedComments = await Promise.all(
-            (post.comments || []).map(async (comment: any) => {
-              // If comment already has an author field, return as-is
-              if (comment.author?.username) return comment;
-
-              // Normalize userId from comment.user
-              const userField = comment.user;
-              const userId =
-                typeof userField === "string"
-                  ? userField
-                  : userField?._id || userField?.user_id;
-
-              if (!userId) {
-                console.warn(
-                  "⚠️ Could not resolve userId from comment:",
-                  comment
-                );
-                return {
-                  ...comment,
-                  author: {
-                    username: "Unknown",
-                    profilePicture: "/placeholder.svg",
-                    _id: "unknown",
-                  },
-                };
-              }
-              if (userCache.has(userId)) {
-                return {
-                  ...comment,
-                  author: userCache.get(userId),
-                };
-              }
-
-              try {
-                const token = localStorage.getItem("token");
-
-                const res = await fetch(
-                  `${
-                    import.meta.env.VITE_API_BASE_URL
-                  }/users/${userId}/profile`,
-                  {
-                    headers: {
-                      Authorization: `Bearer ${token}`,
-                    },
-                  }
-                );
-
-                const data = await res.json();
-                console.log("Fetched user for comment:", data);
-
-                const user = data.user;
-
-                console.log("User data for comment:", user);
-
-                const userInfo = {
-                  username: user.username,
-                  profilePicture: user.profilePicture,
-                  _id: user.user_id,
-                };
-                console.log("User info for comment:", userInfo);
-
-                userCache.set(userId, userInfo);
-
-                return {
-                  ...comment,
-                  author: userInfo,
-                };
-              } catch (err) {
-                console.error(
-                  `Failed to fetch user for comment ${comment._id}`,
-                  err
-                );
-
-                const fallbackUser = {
-                  username: "Unknown",
-                  profilePicture: "/placeholder.svg",
-                  _id: userId,
-                };
-                userCache.set(userId, fallbackUser);
-
-                return {
-                  ...comment,
-                  author: fallbackUser,
-                };
-              }
-            })
-          );
-
-          return {
-            ...post,
-            author: {
-              username: profileData.username,
-              profilePicture: profileData.profilePicture,
-            },
-            comments: enrichedComments,
-          };
-        })
-      );
-
-      setEnrichedPosts(enriched);
+    const author = {
+      username: profileData.username,
+      profilePicture: profileData.profilePicture,
     };
 
-    enrichPosts();
+    const enriched = profileData.posts.map((post) => {
+      const enrichedComments = post.comments.map((comment: any) => ({
+        ...comment,
+        username: author.username,
+        profilePicture: author.profilePicture,
+      }));
+
+      return {
+        ...post,
+        author,
+        comments: enrichedComments,
+      };
+    });
+
+    setEnrichedPosts(enriched);
   }, [profileData]);
+
 
   const showToast = (message: string, duration = 3000) => {
     setToastMsg(message);
@@ -258,24 +171,24 @@ export default function ProfilePersonal() {
     }
   };
 
-const handleSave = async () => {
-  try {
-    await updateProfile({
-      username: profileData.username,
-      email: profileData.email, // ✅ ADD THIS
-      phone: profileData.phone,
-      bio: profileData.bio,
-    });
+  const handleSave = async () => {
+    try {
+      await updateProfile({
+        username: profileData.username,
+        email: profileData.email, // ✅ ADD THIS
+        phone: profileData.phone,
+        bio: profileData.bio,
+      });
 
-    const refreshed = await getCurrentUser();
-    setProfileData(refreshed);
-    setIsEditing(false);
-    showToast("Profile updated successfully");
-  } catch (err) {
-    console.error("Failed to save profile", err);
-    showToast("Failed to update profile");
-  }
-};
+      const refreshed = await getCurrentUser();
+      setProfileData(refreshed);
+      setIsEditing(false);
+      showToast("Profile updated successfully");
+    } catch (err) {
+      console.error("Failed to save profile", err);
+      showToast("Failed to update profile");
+    }
+  };
 
   if (loading)
     return (
@@ -304,7 +217,7 @@ const handleSave = async () => {
         </div>
       )}
 
-      <Card className="relative overflow-hidden shadow-lg border-0">
+      <Card className="relative overflow-hidden shadow-lg border-0 max-w-4xl mx-auto">
         <div className="h-40 bg-gradient-to-r from-primary to-indigo-600 w-full rounded-t-xl" />
         <CardContent className="relative -mt-20 pb-6 pt-2 px-6">
           <div className="flex flex-col md:flex-row md:items-center gap-6">
@@ -376,10 +289,6 @@ const handleSave = async () => {
               )}
               <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
-                  <BookOpen className="h-4 w-4" />
-                  <span>{profileData.user_id}</span>
-                </div>
-                <div className="flex items-center gap-1">
                   <Phone className="h-4 w-4" />
                   <span>{profileData.phone || "Not provided"}</span>
                 </div>
@@ -440,7 +349,7 @@ const handleSave = async () => {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
         {[
           {
             label: "Posts",
@@ -463,9 +372,8 @@ const handleSave = async () => {
         ].map((stat, i) => (
           <Card
             key={i}
-            className={`text-center p-4 hover:shadow-md transition-shadow ${
-              stat.onClick ? "cursor-pointer" : ""
-            }`}
+            className={`text-center p-4 hover:shadow-md transition-shadow ${stat.onClick ? "cursor-pointer" : ""
+              }`}
             onClick={stat.onClick || undefined}
           >
             <stat.icon className="h-6 w-6 mx-auto text-primary mb-1" />
@@ -487,36 +395,28 @@ const handleSave = async () => {
                 <PostCard
                   key={post._id}
                   post={post}
-                  currentUserId={profileData.user_id}
+                  currentUserId={profileData.user_id || ""}
                   showEditDelete={true}
-                  onEditPost={(postId, message, postType) => {
+                  onLike={() => { }}
+                  onDeleteComment={() => { }}
+                  onAddComment={() => { }}
+                  onEditPost={(postId) => {
                     setEditingPostId(postId);
-                    setEditMessage(message);
-                    setEditPostType(postType || "");
+                    const postToEdit = enrichedPosts.find((p) => p._id === postId);
+                    setEditMessage(postToEdit?.message || "");
+                    setEditPostType(postToEdit?.postType || "");
                   }}
-                  onDeletePost={async (postId) => {
-                    try {
-                      await handleDeletePost(postId);
-                    } catch {
-                      showToast("Failed to delete post");
-                    }
-                  }}
+                  onDeletePost={handleDeletePost}
+                  onSaveEdit={handleEditPost}
+                  onCancelEdit={() => setEditingPostId(null)}
                   editingPostId={editingPostId}
                   editMessage={editMessage}
                   editPostType={editPostType}
                   setEditMessage={setEditMessage}
                   setEditPostType={setEditPostType}
-                  onSaveEdit={async (postId, message, postType) => {
-                    setEditMessage(message);
-                    setEditPostType(postType);
-                    await handleEditPost(postId);
-                  }}
-                  onCancelEdit={() => setEditingPostId(null)}
-                  onLike={() => {}}
-                  onDeleteComment={() => {}}
-                  onAddComment={() => {}}
                 />
-              ))}
+              ))
+              }
             </div>
           ) : (
             <Card>

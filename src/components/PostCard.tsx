@@ -66,6 +66,8 @@ export function PostCard({
   };
 
   const handleAddComment = async () => {
+    if (!newComment.trim()) return;
+    setLoading(true);
     try {
       const mentions = newComment.match(/@\w+/g)?.map((m) => m.slice(1)) || [];
       const res = await addComment(post.post_id, {
@@ -74,18 +76,19 @@ export function PostCard({
       });
 
       const addedComment = {
-        ...res.data,
-        author: {
-          _id: currentUserId,
-          username: post.currentUser?.username || "You",
-          profilePicture: post.currentUser?.profilePicture || "",
-        },
+        comment_id: res.data.comment_id || res.data._id,
+        text: res.data.text,
+        username: post.currentUser?.username || "You",
+        user: currentUserId,
+        profilePicture: post.currentUser?.profilePicture || "",
       };
 
       setCommentList((prev) => [...prev, addedComment]);
       setNewComment("");
     } catch (error) {
       console.error("Failed to add comment:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -168,16 +171,17 @@ export function PostCard({
             className="space-y-2"
           >
             <textarea
-              className="w-full border rounded p-2 text-sm"
+              className="w-full border rounded p-2 text-sm focus-visible:ring-0 focus-visible:outline-none"
               rows={2}
               value={editMessage}
               onChange={(e) => setEditMessage?.(e.target.value)}
             />
             <input
-              className="w-full border rounded p-2 text-sm"
+              className="w-full border rounded p-2 text-sm focus-visible:ring-0 focus-visible:outline-none"
               value={editPostType}
               onChange={(e) => setEditPostType?.(e.target.value)}
             />
+
             <div className="flex gap-2">
               <Button size="sm" type="submit">
                 Save
@@ -321,25 +325,29 @@ export function PostCard({
               );
             })}
 
-            <div className="flex items-center gap-2">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleAddComment();
+              }}
+              className="flex items-center gap-2 w-full"
+            >
               <Input
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Add a comment..."
-                className="h-8 text-sm"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleAddComment();
-                }}
+                className="h-8 text-sm flex-1"
                 disabled={loading}
               />
               <Button
+                type="submit"
                 size="sm"
-                onClick={handleAddComment}
                 disabled={loading || !newComment.trim()}
               >
                 Post
               </Button>
-            </div>
+            </form>
+
           </div>
         )}
       </CardFooter>
