@@ -249,7 +249,7 @@ export default function ProfileUser() {
                   {followStatus === "not following" && (
                     <button
                       onClick={handleFollowToggle}
-                      className="mt-4 md:mt-0 px-4 py-2 text-sm rounded-md font-medium bg-white text-black hover:bg-gray-200 transition-colors"
+                      className="mt-4 md:mt-0 px-4 py-2 text-sm rounded-md font-medium bg-slate-600 text-black hover:bg-gray-200 transition-colors"
                     >
                       Follow
                     </button>
@@ -258,7 +258,7 @@ export default function ProfileUser() {
                   {followStatus === "Requested" && (
                     <button
                       disabled
-                      className="mt-4 md:mt-0 px-4 py-2 text-sm rounded-md font-medium bg-yellow-400 text-white cursor-not-allowed"
+                      className="mt-4 md:mt-0 px-4 py-2 text-sm rounded-md font-medium bg-black text-white cursor-not-allowed"
                     >
                       Requested
                     </button>
@@ -284,7 +284,7 @@ export default function ProfileUser() {
                   {followStatus === "connected" && (
                     <button
                       onClick={handleFollowToggle}
-                      className="mt-4 md:mt-0 px-4 py-2 text-sm rounded-md font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
+                      className="mt-4 md:mt-0 px-4 py-2 text-sm rounded-md font-medium bg-slate-600 text-white hover:bg-red-600 transition-colors"
                     >
                       Unfollow
                     </button>

@@ -232,7 +232,9 @@ export default function Chat() {
                           {user.lastMessage}
                         </p>
                         {user.unread > 0 && (
-                          <Badge className="ml-2 h-5 w-5 p-0 text-xs">{user.unread}</Badge>
+                          <Badge className="ml-2 h-5 w-5 p-0 text-xs flex items-center justify-center rounded-full">
+                          {user.unread}
+                        </Badge>
                         )}
                       </div>
                     </div>
