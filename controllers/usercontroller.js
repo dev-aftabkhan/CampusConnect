@@ -36,6 +36,23 @@ exports.getProfile = async (req, res) => {
 
         // get following status
         const status = await followService.checkFollowStatus(currentUser, user_id);
+        const enrichedPosts = [];
+          for (const post of posts) {
+            const postObj = post.toObject(); // Convert Mongoose Document to plain JS object
+            const enrichedComments = [];
+
+            for (const comment of postObj.comments) {
+              const commentUser = await User.findOne({ user_id: comment.user });
+              enrichedComments.push({
+                ...comment,
+                username: commentUser ? commentUser.username : 'Unknown',
+                profilePicture: commentUser ? commentUser.profilePicture : '',
+              });
+            }
+
+            postObj.comments = enrichedComments;
+            enrichedPosts.push(postObj);
+          }
 
         res.status(200).json({
           user: {
@@ -49,7 +66,7 @@ exports.getProfile = async (req, res) => {
             postCount,
             followerCount,
             followingCount,
-            posts,
+            posts: enrichedPosts,
             mutualCount,
             mutuals,
             status, 
@@ -198,6 +215,24 @@ exports.getUserProfile = async (req, res) => {
     const postCount = posts.length;
     const followerCount = Array.isArray(user.follower) ? user.follower.length : 0;
     const followingCount = Array.isArray(user.following) ? user.following.length : 0;
+    const enrichedPosts = [];
+          for (const post of posts) {
+            const postObj = post.toObject(); // Convert Mongoose Document to plain JS object
+            const enrichedComments = [];
+
+            for (const comment of postObj.comments) {
+              const commentUser = await User.findOne({ user_id: comment.user });
+              enrichedComments.push({
+                ...comment,
+                username: commentUser ? commentUser.username : 'Unknown',
+                profilePicture: commentUser ? commentUser.profilePicture : '',
+              });
+            }
+
+            postObj.comments = enrichedComments;
+            enrichedPosts.push(postObj);
+          }
+
 
     // ✅ Return full profile
     res.status(200).json({
