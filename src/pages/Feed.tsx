@@ -75,6 +75,19 @@ export default function Feed() {
     fetchPosts();
   }, [fetchPosts]);
 
+  const handleCommentAdded = (postId: string, newComment: any) => {
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.post_id === postId
+          ? {
+              ...post,
+              comments: [...post.comments, newComment],
+            }
+          : post
+      )
+    );
+  };  
+
   return (
     <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
       {/* Main Feed */}
@@ -133,6 +146,7 @@ export default function Feed() {
                 setEditPostType={() => { }}
                 onSaveEdit={() => { }}
                 onCancelEdit={() => { }}
+                onCommentAdded={handleCommentAdded}
               />
 
             ))

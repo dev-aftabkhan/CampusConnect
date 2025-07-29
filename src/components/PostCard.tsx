@@ -23,27 +23,28 @@ import { likePost, unlikePost, addComment, deleteComment } from "@/api/post";
 import { toast } from "@/components/ui/use-toast";
 
 export function PostCard({
-  post,
+  post: initialPost,
   currentUserId,
   showEditDelete = false,
   onEditPost,
   onDeletePost,
   editingPostId,
   editMessage,
-  editPostType,
+  editPostType, 
   setEditMessage,
   setEditPostType,
   onSaveEdit,
   onCancelEdit,
   onCommentAdded,
 }) {
-  const [liked, setLiked] = useState(post.likes.includes(currentUserId));
-  const [likeCount, setLikeCount] = useState(post.likes.length);
-  const [commentList, setCommentList] = useState(post.comments || []);
+  const [liked, setLiked] = useState(initialPost.likes.includes(currentUserId));
+  const [likeCount, setLikeCount] = useState(initialPost.likes.length);
+  const [commentList, setCommentList] = useState(initialPost.comments || []);
   const [newComment, setNewComment] = useState("");
   const [showCommentBox, setShowCommentBox] = useState(false);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [post, setPost] = useState(initialPost);
 
   useEffect(() => {
     setLiked(post.likes.includes(currentUserId));
@@ -59,19 +60,31 @@ export function PostCard({
     try {
       const res = await import("@/api/post").then(m => m.getPostById(post.post_id));
       const freshPost = res.data;
+
       setLikeCount(freshPost.likes.length);
       setLiked(freshPost.likes.includes(currentUserId));
-      setCommentList(
-        (freshPost.comments || []).map((c) => ({
-          comment_id: c.comment_id || c._id,
-          text: c.text,
-          username: c.username || c.user?.username || "user",
-          user: c.user?._id || c.user || "",
-          profilePicture: c.profilePicture || c.user?.profilePicture || "",
-        }))
-      );
+
+      const mappedComments = (freshPost.comments || []).map((c) => ({
+        comment_id: c.comment_id || c._id,
+        text: c.text,
+        username: c.username || c.user?.username || "user",
+        user: c.user?._id || c.user || "",
+        profilePicture: c.profilePicture || c.user?.profilePicture || "",
+      }));
+
+      setCommentList(mappedComments);
+
+      // ✅ Also update the `post` state if it's used elsewhere
+      setPost({
+        ...freshPost,
+        comments: mappedComments, // update comments in main post object
+      });
+
     } catch (error: any) {
-      toast({ title: error?.response?.data?.message || "Failed to refresh post", variant: "destructive" });
+      toast({
+        title: error?.response?.data?.message || "Failed to refresh post",
+        variant: "destructive"
+      });
     } finally {
       setRefreshing(false);
     }
@@ -89,7 +102,6 @@ export function PostCard({
         toast({ title: "Liked post", variant: "default" });
       }
       setLiked((prev) => !prev);
-      await refreshPost();
     } catch (error: any) {
       toast({ title: error?.response?.data?.message || "Failed to update like", variant: "destructive" });
     }
@@ -100,26 +112,23 @@ export function PostCard({
     setLoading(true);
     try {
       const mentions = newComment.match(/@\w+/g)?.map((m) => m.slice(1)) || [];
-      const res = await addComment(post.post_id, {
+
+      await addComment(post.post_id, {
         text: newComment,
         mentions,
       });
-      const addedComment = {
-        comment_id: res.data.comment_id || res.data._id,
-        text: res.data.text,
-        username: res.data.username || post.currentUser?.username || "You",
-        user: res.data.user || currentUserId,
-        profilePicture: res.data.profilePicture || post.currentUser?.profilePicture || "",
-      };
-      setCommentList((prev) => [...prev, addedComment]);
+
       setNewComment("");
-      toast({ title: "Comment added!", variant: "default" });
-      if (onCommentAdded) {
-        onCommentAdded(addedComment);
-      }
+
+      // ✅ Trigger the latest post and comments (with usernames and pictures)
       await refreshPost();
+
+      toast({ title: "Comment added!", variant: "default" });
     } catch (error: any) {
-      toast({ title: error?.response?.data?.message || "Failed to add comment", variant: "destructive" });
+      toast({
+        title: error?.response?.data?.message || "Failed to add comment",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -132,7 +141,6 @@ export function PostCard({
         prev.filter((c) => c.comment_id !== commentId)
       );
       toast({ title: "Comment deleted!", variant: "default" });
-      await refreshPost();
     } catch (error: any) {
       toast({ title: error?.response?.data?.message || "Failed to delete comment", variant: "destructive" });
     }

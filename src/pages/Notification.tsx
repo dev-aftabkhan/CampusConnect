@@ -15,18 +15,12 @@ interface NotificationType {
     content?: string;
     read: boolean;
     createdAt: string;
-    sender?: UserProfile | null;
-}
-
-interface UserProfile {
     username: string;
     profilePicture?: string;
 }
 
 const Notification = () => {
     const [notifications, setNotifications] = useState<NotificationType[]>([]);
-    // Track previous notifications length
-    const [prevNotifCount, setPrevNotifCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [unreadCount, setUnreadCount] = useState(0);
     const navigate = useNavigate();
@@ -41,36 +35,16 @@ const Notification = () => {
             });
 
             const rawNotifications: NotificationType[] = res.data;
-            const uniqueSenderIds: string[] = [...new Set(rawNotifications.map((n) => n.from))];
+            setNotifications(rawNotifications);
+            const unread = rawNotifications.filter((n) => !n.read).length;
+            setUnreadCount(unread);
 
-            // Fetch sender profiles and build a map
-            const senderProfilesMap: Record<string, UserProfile | null> = {};
-
-            const senderProfiles = await Promise.all(
-                uniqueSenderIds.map(async (userId: string) => {
-                    try {
-                        const profileRes = await axios.get(`${API_BASE}/users/${userId}/profile`, {
-                            headers: { Authorization: `Bearer ${token}` },
-                        });
-                        return { userId, profile: profileRes.data as UserProfile };
-                    } catch (err) {
-                        console.error("Failed to fetch sender profile for:", userId);
-                        return { userId, profile: null };
-                    }
-                })
-            );
-
-            senderProfiles.forEach(({ userId, profile }) => {
-                senderProfilesMap[userId] = profile;
-            });
-
-            const enriched = rawNotifications.map((n) => ({
-                ...n,
-                sender: senderProfilesMap[n.from] || null,
-            }));
-
-            setNotifications(enriched);
-            setUnreadCount(enriched.filter((n) => !n.read).length || 0);
+            if (unread > 0) {
+                toast({
+                    title: "You have new notifications!",
+                    variant: "default",
+                });
+            }
         } catch (err) {
             console.error("Failed to fetch notifications", err);
         } finally {
@@ -80,15 +54,21 @@ const Notification = () => {
 
     const markAsRead = async (id: string) => {
         try {
-            await axios.get(`${API_BASE}/notifications/${id}/read`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            await axios.patch(
+                `${API_BASE}/notifications/${id}/read`,
+                {},
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
             setNotifications((prev) =>
-                prev.map((n) => (n.notification_id === id ? { ...n, read: true } : n))
+                prev.map((n) =>
+                    n.notification_id === id ? { ...n, read: true } : n
+                )
             );
             setUnreadCount((prev) => Math.max(0, prev - 1));
         } catch (err) {
-            console.error("Failed to mark as read", err);
+            console.error("Failed to mark notification as read", err);
         }
     };
 
@@ -96,26 +76,14 @@ const Notification = () => {
         fetchNotifications();
     }, []);
 
-    // Toast for new notification
-    useEffect(() => {
-        if (notifications.length > prevNotifCount) {
-            toast({
-                title: "You have a new notification!",
-                variant: "default",
-            });
-        }
-        setPrevNotifCount(notifications.length);
-    }, [notifications]);
-
     const renderContent = (notif: NotificationType) => {
-        const { type, sender, content } = notif;
-        const username = sender?.username || "Someone";
+        const { type, username } = notif;
 
         const messageTemplates: Record<string, string> = {
             like: `${username} liked your post.`,
             follow: `${username} started following you.`,
-            comment: `${username} commented: "${content}"`,
-            message: `${username} sent you a message: "${content}"`,
+            comment: `${username} commented on your post.`,
+            message: `${username} sent you a message.`,
         };
 
         return <p>{messageTemplates[type] || `${username} sent you a notification.`}</p>;
@@ -126,31 +94,35 @@ const Notification = () => {
     return (
         <div className="space-y-4">
             <h2 className="text-2xl font-bold text-foreground">Notifications</h2>
-            {notifications.length === 0 ? (
+            {notifications.filter(n => !n.read).length === 0 ? (
                 <p className="text-muted-foreground">You're all caught up!</p>
             ) : (
-                notifications.map((notif) => (
-                    <Card
-                        key={notif.notification_id}
-                        className={`flex items-center p-3 space-x-4 ${notif.read ? "opacity-70" : "bg-muted"}`}
-                    >
-                        <Avatar>
-                            <AvatarImage src={notif.sender?.profilePicture || "/placeholder.svg"} />
-                            <AvatarFallback>{notif.sender?.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
-                        </Avatar>
-                        <CardContent className="flex-1 px-0 py-0">
-                            {renderContent(notif)}
-                            <p className="text-xs text-muted-foreground">
-                                {new Date(notif.createdAt).toLocaleString()}
-                            </p>
-                        </CardContent>
-                        {!notif.read && (
-                            <Button variant="ghost" size="sm" onClick={() => markAsRead(notif.notification_id)}>
+                notifications
+                    .filter((notif) => !notif.read)
+                    .map((notif) => (
+                        <Card
+                            key={notif.notification_id}
+                            className="flex items-center p-3 space-x-4 bg-muted"
+                        >
+                            <Avatar>
+                                <AvatarImage src={notif.profilePicture || "/placeholder.svg"} />
+                                <AvatarFallback>{notif.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+                            </Avatar>
+                            <CardContent className="flex-1 px-0 py-0">
+                                {renderContent(notif)}
+                                <p className="text-xs text-muted-foreground">
+                                    {new Date(notif.createdAt).toLocaleString()}
+                                </p>
+                            </CardContent>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => markAsRead(notif.notification_id)}
+                            >
                                 Mark as read
                             </Button>
-                        )}
-                    </Card>
-                ))
+                        </Card>
+                    ))
             )}
         </div>
     );
