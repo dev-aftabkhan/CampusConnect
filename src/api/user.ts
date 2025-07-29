@@ -149,3 +149,25 @@ export async function getUserByUsername(username: string) {
   });
   return res.data;
 }
+
+export const getCommonChatUsers = async (token: string) => {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/users/common-users`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch common users: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching common chat users:", error);
+    throw error;
+  }
+};
