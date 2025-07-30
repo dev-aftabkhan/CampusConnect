@@ -46,11 +46,16 @@ exports.acceptFollowRequest = async (userId, fromUserId) => {
   if (!user.followRequests.includes(fromUserId)) throw new Error('No such follow request');
 
   user.followRequests.pull(fromUserId);
+  console.log("user.followRequests after pull:", user.followRequests, userId);
   fromUser.pendingRequests.pull(userId);
+  console.log("fromUser.pendingRequests after pull:", fromUser.pendingRequests, fromUserId);
   user.follower.push(fromUserId);
+  console.log("user.follower after push:", user.follower, userId);
   fromUser.following.push(userId);
+  console.log("fromUser.following after push:", fromUser.following, fromUserId);
   if(!user.following.includes(fromUserId)){
     this.sendFollowRequest(userId, fromUserId);
+    console.log("Sent follow request from", userId, "to", fromUserId);
   }
   await user.save();
   await fromUser.save();
