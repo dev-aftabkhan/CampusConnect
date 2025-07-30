@@ -143,7 +143,7 @@ exports.checkFollowStatus = async (userId, targetId) => {
   if (user.pendingRequests.includes(target.user_id)) {
     return 'Requested';
   }
-  if(user.followRequests.includes(target.user_id) && user.following.includes(target.user_id)){
+  if(user.followRequests.includes(target.user_id) && target.pendingRequests.includes(user.user_id)){
     return 'incoming request';
   }
   return 'not following';
