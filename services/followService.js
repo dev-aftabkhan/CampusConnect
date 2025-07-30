@@ -47,15 +47,19 @@ exports.acceptFollowRequest = async (userId, fromUserId) => {
 
   user.followRequests.pull(fromUserId);
   console.log("user.followRequests after pull:", user.followRequests, userId);
+  await user.save();
   fromUser.pendingRequests.pull(userId);
   console.log("fromUser.pendingRequests after pull:", fromUser.pendingRequests, fromUserId);
+  await fromUser.save();
   user.follower.push(fromUserId);
   console.log("user.follower after push:", user.follower, userId);
+  await user.save();
   fromUser.following.push(userId);
   console.log("fromUser.following after push:", fromUser.following, fromUserId);
+  await fromUser.save();
   if(!user.following.includes(fromUserId)){
+     console.log("Sent follow request from", userId, "to", fromUserId);
     this.sendFollowRequest(userId, fromUserId);
-    console.log("Sent follow request from", userId, "to", fromUserId);
   }
   await user.save();
   await fromUser.save();
@@ -148,7 +152,7 @@ exports.checkFollowStatus = async (userId, targetId) => {
   if (user.pendingRequests.includes(target.user_id)) {
     return 'Requested';
   }
-  if(user.followRequests.includes(target.user_id) && target.pendingRequests.includes(user.user_id)){
+  if(user.followRequests.includes(target.user_id) || target.pendingRequests.includes(user.user_id)){
     return 'incoming request';
   }
   return 'not following';

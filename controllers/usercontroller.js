@@ -200,10 +200,6 @@ exports.getUserProfile = async (req, res) => {
 
   try {
     const user = await userService.getprofilebyid(user_id);
-    console.log("Full User Object >>>", user);
-    console.log("Type of user.follower:", typeof user.follower);
-    console.log("Follower Array:", user.follower);
-    console.log("Following Array:", user.following);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
