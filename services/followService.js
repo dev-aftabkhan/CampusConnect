@@ -136,14 +136,14 @@ exports.unfollowUser = async (userId, targetId) => {
 exports.checkFollowStatus = async (userId, targetId) => {
   const user = await UserService.findUserById(userId);
   const target = await UserService.findUserById(targetId);
- 
-  if(user.follower.includes(targetId) && user.following.includes(targetId)){
+
+  if(user.follower.includes(target.user_id) && user.following.includes(target.user_id)){
     return 'connected';
   }
-  if (user.pendingRequests.includes(targetId)) {
+  if (user.pendingRequests.includes(target.user_id)) {
     return 'Requested';
   }
-  if(user.followRequests.includes(targetId) && user.following.includes(targetId)){
+  if(user.followRequests.includes(target.user_id) && user.following.includes(target.user_id)){
     return 'incoming request';
   }
   return 'not following';
