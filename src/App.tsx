@@ -15,10 +15,60 @@ import MainLayout from "@/layouts/MainLayout";
 // import NotFound from "./pages/NotFound";
 import { appRoutes } from "@/routes/routes";
 import { AuthRoute } from "@/routes/AuthRoute";
+import { connectSocket } from "@/lib/socket";
+import { useEffect } from "react";
+import { toast } from "@/hooks/use-toast";
+import { getSocket } from "@/lib/socket";
+ 
 
 const queryClient = new QueryClient();
+interface data {
+   type: string;
+   from: string;
+   timestamp: Date;
+}
+ 
 
-const App = () => (
+const App = () => {
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+  
+    const socket = connectSocket(token);
+    console.log("Socket connected:", socket.connected);
+  
+    const handleNotification = (data: data) => {
+      console.log("🔔 Received notification:", data);
+      toast({
+        title: `🔔 New ${data.type}`,
+        description: `From ${data.from}`,
+      });
+    };
+  
+    const registerListeners = () => {
+      socket.on("notification", handleNotification);
+    };
+  
+    socket.on("connect", () => {
+      console.log("✅ Connected!", socket.id);
+      registerListeners(); // 🔁 Re-register notification handler on reconnect
+    });
+  
+    // Optional: If you want to handle reconnection events
+    socket.io.on("reconnect", () => {
+      console.log("♻️ Socket reconnected");
+      registerListeners(); // 🔁 Make sure we reattach on reconnect too
+    });
+  
+    // Clean up
+    return () => {
+      socket.off("connect");
+      socket.off("notification", handleNotification);
+      socket.io.off("reconnect");
+    };
+  }, []);
+  
+  return (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider defaultTheme="dark" storageKey="campus-connect-theme">
       <TooltipProvider>
@@ -50,6 +100,7 @@ const App = () => (
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;

@@ -26,8 +26,14 @@ import {
   getMutuals,
   followUser,
   unfollowUser,
+  acceptFollowRequest,
+  rejectFollowRequest,
 } from "@/api/user";
 import { toast } from "@/components/ui/use-toast";
+import { useSearchParams } from "react-router-dom";
+import { useRef } from "react";
+
+
 
 interface Post {
   _id: string;
@@ -73,6 +79,10 @@ export default function ProfileUser() {
   const [followStatus, setFollowStatus] = useState<
     "not following" | "Requested" | "incoming request" | "connected" | null
   >(null);
+  const [searchParams] = useSearchParams();
+  const scrollToPostId = searchParams.get("scrollTo");
+  const postRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+
 
 
   useEffect(() => {
@@ -111,6 +121,8 @@ export default function ProfileUser() {
     if (userId) fetchProfile();
   }, [userId]);
 
+
+
   useEffect(() => {
     if (!profileData?.posts || !profileData.username) return;
 
@@ -125,7 +137,27 @@ export default function ProfileUser() {
     }));
 
     setEnrichedPosts(enriched);
+    setTimeout(() => {
+      if (scrollToPostId && postRefs.current[scrollToPostId]) {
+        postRefs.current[scrollToPostId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 300); // wait a little for rendering
+    
   }, [profileData]);
+
+  useEffect(() => {
+    if (scrollToPostId) {
+      const el = document.getElementById(`post-${scrollToPostId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        el.classList.add("ring-2", "ring-blue-500"); // Optional highlight
+        setTimeout(() => {
+          el.classList.remove("ring-2", "ring-blue-500");
+        }, 2000);
+      }
+    }
+  }, [scrollToPostId, enrichedPosts]); // `posts` should be your post list state
+  
 
   const handleOpenList = async (
     type: "followers" | "following" | "mutuals"
@@ -150,7 +182,7 @@ export default function ProfileUser() {
   const handleAcceptFollow = async () => {
     if (!profileData) return;
     try {
-      await followUser(profileData.user_id); // assuming 2nd arg indicates acceptance
+      await acceptFollowRequest(profileData.user_id); // assuming 2nd arg indicates acceptance
       setFollowStatus("connected");
       toast({ title: "Follow request accepted!", variant: "default" });
     } catch (err) {
@@ -162,7 +194,7 @@ export default function ProfileUser() {
   const handleDeclineFollow = async () => {
     if (!profileData) return;
     try {
-      await unfollowUser(profileData.user_id); // or a separate declineFollow API
+      await rejectFollowRequest(profileData.user_id); // or a separate declineFollow API
       setFollowStatus("not following");
       toast({ title: "Follow request declined.", variant: "default" });
     } catch (err) {
@@ -345,30 +377,36 @@ export default function ProfileUser() {
           <TabsContent value="posts" className="space-y-4">
             {enrichedPosts.length > 0 ? (
               enrichedPosts.map((post) => (
-                <PostCard
+                <div
                   key={post._id}
-                  post={post}
-                  currentUserId={loggedInUserId || ""}
-                  showEditDelete={false}
-                  onEditPost={() => { }}
-                  onDeletePost={() => { }}
-                  editingPostId={null}
-                  editMessage={""}
-                  editPostType={""}
-                  setEditMessage={() => { }}
-                  setEditPostType={() => { }}
-                  onSaveEdit={() => { }}
-                  onCancelEdit={() => { }}
-                  onCommentAdded={(comment) => {
-                    setEnrichedPosts((prev) =>
-                      prev.map((p) =>
-                        p._id === post._id
-                          ? { ...p, comments: [...(p.comments || []), comment] }
-                          : p
-                      )
-                    );
-                  }}
-                />
+                  id={`post-${post.post_id}`} 
+                  className={post._id === scrollToPostId ? "border border-primary rounded-md shadow-md" : ""}
+                >
+                  <PostCard
+                    key={post._id}
+                    post={post}
+                    currentUserId={loggedInUserId || ""}
+                    showEditDelete={false}
+                    onEditPost={() => {}}
+                    onDeletePost={() => {}}
+                    editingPostId={null}
+                    editMessage={""}
+                    editPostType={""}
+                    setEditMessage={() => {}}
+                    setEditPostType={() => {}}
+                    onSaveEdit={() => {}}
+                    onCancelEdit={() => {}}
+                    onCommentAdded={(comment) => {
+                      setEnrichedPosts((prev) =>
+                        prev.map((p) =>
+                          p._id === post._id
+                            ? { ...p, comments: [...(p.comments || []), comment] }
+                            : p
+                        )
+                      );
+                    }}
+                  />
+                </div>
               ))
             ) : (
               <Card className="border-0 shadow-none">

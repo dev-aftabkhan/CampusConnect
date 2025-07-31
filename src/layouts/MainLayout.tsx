@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { getOwnUserProfile } from "@/api/user";
 import { toast } from "@/components/ui/use-toast";
-
+import { disconnectSocket } from "@/lib/socket";
 interface MainLayoutProps {
   children: React.ReactNode;
 }
@@ -34,6 +34,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     } finally {
       localStorage.clear();
       sessionStorage.clear();
+      disconnectSocket();
       setLoading(false);
       navigate("/login", { replace: true });
       // No reload, rely on state/context for live update

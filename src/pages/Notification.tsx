@@ -88,6 +88,21 @@ const Notification = () => {
 
         return <p>{messageTemplates[type] || `${username} sent you a notification.`}</p>;
     };
+    const handleNotificationClick = async (notif: NotificationType) => {
+        await markAsRead(notif.notification_id);
+    
+        if (["like", "comment"].includes(notif.type)) {
+            navigate(`/profile/${notif.from}?scrollTo=${notif.postId}`);
+        } else if (notif.type === "follow_request") {
+          navigate(`/profile/${notif.from}`);
+        } else if (notif.type === "message") {
+          navigate(`/chat/`);
+        } else if(notif.type === "mention"){
+          navigate(`/profile/${notif.from}?scrollTo=${notif.postId}`);
+        } else {
+          console.warn("Unknown notification type:", notif.type);
+        }
+      };
 
     if (loading) return <p className="text-center py-6">Loading...</p>;
 
@@ -103,6 +118,7 @@ const Notification = () => {
                         <Card
                             key={notif.notification_id}
                             className="flex items-center p-3 space-x-4 bg-muted"
+                            onClick={() => handleNotificationClick(notif)}
                         >
                             <Avatar>
                                 <AvatarImage src={notif.profilePicture || "/placeholder.svg"} />

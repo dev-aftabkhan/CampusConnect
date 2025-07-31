@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { BookOpen, Eye, EyeOff, Mail } from "lucide-react";
 import { login } from "@/api/auth";
 import { toast } from "@/components/ui/use-toast";
+import { connectSocket } from "@/lib/socket"; // adjust path
+
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -24,10 +26,17 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await login(formData.identifier, formData.password);
+       // ✅ Get token from localStorage (assuming login() saved it)
+      const token = localStorage.getItem("token");
+      if (token) {
+        connectSocket(token); 
+        console.log("Socket connected");
+      }
       toast({
         title: "Login successful! Redirecting...",
         variant: "default",
       });
+
       navigate("/", { replace: true });
       // No reload, rely on state/context for live update
     } catch (err: any) {

@@ -10,6 +10,8 @@ import { MessageSquare, Send } from "lucide-react"
 import { getCommonChatUsers } from "@/api/user"
 import { getChatMessages } from "@/api/chat"
 import io, { Socket as SocketType } from "socket.io-client"
+import { connectNotificationSocket } from "@/lib/socket"; // ✅ adjust the path if different
+
 import { toast } from "@/components/ui/use-toast";
 
 interface ChatUser {
@@ -49,11 +51,11 @@ export default function Chat() {
   const [selectedChat, setSelectedChat] = useState<string | null>(null)
   const [newMessage, setNewMessage] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
-  const socketRef = useRef<SocketType | null>(null)
+  const socketRef = useRef<ReturnType<typeof io> | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const token = localStorage.getItem("token")
-  const [isTyping, setIsTyping] = useState(false);
-  const typingTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [isTyping, setIsTyping] = useState(false)
+  const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ✅ Connect to socket only once
  // ✅ Establish socket only once
@@ -92,6 +94,9 @@ useEffect(() => {
 
   return () => {
     socket.disconnect();
+    setTimeout(() => {
+      connectNotificationSocket();
+    }, 200); 
   };
 }, [token]);
 
