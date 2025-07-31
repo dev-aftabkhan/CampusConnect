@@ -2,11 +2,10 @@
 import io from "socket.io-client";
 import { toast } from "@/hooks/use-toast";
 
-
 let Socket: ReturnType<typeof io> | null = null;
 
 export const connectSocket = (token) => {
-  Socket = io("http://20.192.25.27:4242", {
+  Socket = io("http://localhost:4242", {
     auth: {
       token, // JWT token
     },
@@ -23,7 +22,7 @@ export const disconnectSocket = () => {
   }
 };
 
-const API_BASE = "http://20.192.25.27:4242";
+const API_BASE = "http://localhost:4242";
 
 let notificationSocket: ReturnType<typeof io> | null = null;
 
@@ -57,6 +56,7 @@ export const connectNotificationSocket = () => {
   // ✅ Ensure listener is re-attached on every reconnect
   notificationSocket.on("reconnect", (attempt) => {
     console.log(`♻️ Reconnected after ${attempt} attempts`);
+     
     // 💡 Important: re-attach listener
     notificationSocket?.off("notification"); // prevent duplicate listener
     notificationSocket?.on("notification", showNotification);
