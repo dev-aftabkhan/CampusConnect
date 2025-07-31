@@ -154,7 +154,22 @@ exports.deleteComment = async (req, res) => {
 
 exports.getPopularPosts = async (req, res) => {
   try {
-    const posts = await postService.getPopularPosts(10);
+    const posts = await postService.getRecentPosts(10);
+    // username and profile picture for each post
+    for (const post of posts) {
+      const user = await User.findOne({ user_id: post.user });
+      post.username = user ? user.username : 'Unknown';
+      post.profilePicture = user ? user.profilePicture : '';
+    }
+    // comment username and profile picture
+    for (const post of posts) {
+      for (const comment of post.comments) {
+        const user = await User.findOne({ user_id: comment.user });
+        comment.username = user ? user.username : 'Unknown';
+        comment.profilePicture = user ? user.profilePicture : '';
+      }
+    }
+
     res.json({ posts });
   } catch (err) {
     res.status(500).json({ message: err.message });

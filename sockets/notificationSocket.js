@@ -1,10 +1,25 @@
 const Notification = require('../models/Notification');
+const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const connectedUsers = new Map();
+// at top of file
+const { connectedUsers } = require('./socket'); // Import connectedUsers map
+
 
 function notificationSocket(io) {
+  io.use((socket, next) => {
+    const token = socket.handshake.auth?.token;
+    if (!token) return next(new Error("Token required"));
+
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      socket.userId = decoded.user_id || decoded.id; // adjust field name
+      next();
+    } catch (err) {
+      return next(new Error("Invalid token"));
+    }
+  });
   io.on('connection', (socket) => {
-    const userId = socket.handshake.auth?.userId;
+    const userId = socket.userId;
     if (!userId) return;
     connectedUsers.set(userId, socket);
 
@@ -12,18 +27,17 @@ function notificationSocket(io) {
       .sort({ createdAt: -1 })
       .then((notifs) => socket.emit('notifications', notifs));
 
-    socket.on('mark_as_read', async (notificationId) => {
-      await Notification.findOneAndUpdate({ notification_id: notificationId }, { read: true });
-    });
+
 
     socket.on('disconnect', () => connectedUsers.delete(userId));
   });
-}
+};
 
 async function triggerNotification({ user, type, from, postId, commentId, message }) {
+  console.log("🧑‍💻 Online users:", Array.from(connectedUsers.keys())); // ✅ Log online users
   console.log('📬 Creating notification for:', user);
 
-  
+
 
   // Dynamically build the payload with only defined fields
   const payload = {
@@ -37,9 +51,9 @@ async function triggerNotification({ user, type, from, postId, commentId, messag
 
 
   console.log('📦 Notification payload:', payload);
-    const notification_id = `${crypto.randomBytes(4).toString('hex')}`;
-    console.log('Generated notification_id:', notification_id);
-    payload.notification_id = notification_id;
+  const notification_id = `notif-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+  console.log('Generated notification_id:', notification_id);
+  payload.notification_id = notification_id;
   try {
     const notif = await Notification.create(payload);
     console.log('✅ Notification saved:', notif);

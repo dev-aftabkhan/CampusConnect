@@ -2,11 +2,12 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Message = require('../models/Message');
 const { mongo, default: mongoose } = require('mongoose');
-const { triggerNotification } = require('./notificationSocket'); 
- 
+const { triggerNotification } = require('./notificationSocket');
+const notifications = require('./notificationSocket'); // Import notificationSocket for triggering notifications
+
 //const { encrypt, decrypt } = require('../utils/encryptor');
 
-const connectedUsers = new Map();
+const connectedUsers = new Map(); // Store connected users
 
 function socketHandler(io) {
   io.use(async (socket, next) => {
@@ -46,28 +47,38 @@ function socketHandler(io) {
           text
         });
 
+        // ✅ Always trigger notification (saves to DB)
+        const notificationPayload = {
+          user: to,
+          type: 'message',
+          from: socket.user.user_id,
+          message: text
+        };
+        await triggerNotification(notificationPayload);
+
         // ✅ Emit to sender
         socket.emit('message_sent', message);
 
         // ✅ Emit to receiver if online
         const targetSocket = connectedUsers.get(to);
+        console.log("targetSocket:", targetSocket);
         if (targetSocket) {
 
-           message.read = true;
-            await message.save();
+          message.read = true;
+          await message.save();
 
           targetSocket.emit('receive_message', message);
-        }else{
-          // ✅ If offline, send notification
-          await triggerNotification({
-            user: to,
+
+          targetSocket.emit('notification', {
             type: 'message',
             from: socket.user.user_id,
-            message: text
+            timestamp: new Date()
           });
+
         }
 
       } catch (err) {
+        console.error('❌ Error sending message:', err);
         socket.emit('error', 'Failed to send message');
       }
     });
@@ -75,6 +86,10 @@ function socketHandler(io) {
     socket.on('disconnect', () => {
       connectedUsers.delete(socket.user.user_id);
       console.log(`❌ ${socket.user.username} disconnected`);
+      // connect the notificationSocket
+      notifications.notificationSocket(io);
+      console.log("Connected users after disconnect:", Array.from(connectedUsers.keys()));
+
     });
   });
 }

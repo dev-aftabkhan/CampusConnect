@@ -1,14 +1,15 @@
 const User = require('../models/User');
 const UserService = require('../services/userService');
 const { triggerNotification } = require('../sockets/notificationSocket');
+const { connectedUsers } = require('../sockets/socket'); // Import connectedUsers map
 
 
 exports.sendFollowRequest = async (fromUserId, toUserId) => {
   const receiver = await UserService.findUserById(toUserId);
-    if (!receiver) throw new Error('User not found');
+  if (!receiver) throw new Error('User not found');
   const sender = await UserService.findUserById(fromUserId);
-    if (!sender) throw new Error('Sender not found');
-  
+  if (!sender) throw new Error('Sender not found');
+
   console.log("Receiver.followRequests:", receiver?.followRequests);
   console.log("Receiver.followers:", receiver?.follower);
 
@@ -28,12 +29,21 @@ exports.sendFollowRequest = async (fromUserId, toUserId) => {
     type: 'follow_request',
     from: fromUserId
   });
+
+  const targetSocket = connectedUsers.get(toUserId);
+  if (targetSocket) {
+    targetSocket.emit('notification', {
+      type: 'follow_request',
+      from: fromUserId,
+      timestamp: new Date()
+    });
+  }
 };
 exports.getIncomingRequests = async (userId) => {
   const user = await UserService.findUserById(userId);
   if (!user) throw new Error('User not found');
 
-  const populated = await user.populate({path: 'followRequestsInfo', select: 'username profilePicture bio interests'});
+  const populated = await user.populate({ path: 'followRequestsInfo', select: 'username profilePicture bio interests' });
   return populated.followRequestsInfo;
 };
 
@@ -57,8 +67,8 @@ exports.acceptFollowRequest = async (userId, fromUserId) => {
   fromUser.following.push(userId);
   console.log("fromUser.following after push:", fromUser.following, fromUserId);
   await fromUser.save();
-  if(!user.following.includes(fromUserId)){
-     console.log("Sent follow request from", userId, "to", fromUserId);
+  if (!user.following.includes(fromUserId)) {
+    console.log("Sent follow request from", userId, "to", fromUserId);
     this.sendFollowRequest(userId, fromUserId);
   }
   await user.save();
@@ -91,7 +101,7 @@ exports.getFollowers = async (viewerId, targetId) => {
   if (!viewer || !target) throw new Error('User not found');
 
   // Access control: must be in target.follower[] (raw strings)
-  const isAllowed = target.follower.includes(viewerId)|| target.user_id === viewerId;
+  const isAllowed = target.follower.includes(viewerId) || target.user_id === viewerId;
   if (!isAllowed) throw new Error('Access denied');
 
   return target.followerInfo;
@@ -99,13 +109,13 @@ exports.getFollowers = async (viewerId, targetId) => {
 
 exports.getFollowing = async (viewerId, targetId) => {
   const viewer = await UserService.findUserById(viewerId);
- // get the full target with populated followers
+  // get the full target with populated followers
   const target = await User.findOne({ user_id: targetId })
     .populate('followingInfo', 'username profilePicture bio interests');
 
   if (!viewer || !target) throw new Error('User not found');
- // Access control: must be in target.follower[] (raw strings)
-  const isAllowed = target.follower.includes(viewerId)|| target.user_id === viewerId;
+  // Access control: must be in target.follower[] (raw strings)
+  const isAllowed = target.follower.includes(viewerId) || target.user_id === viewerId;
   if (!isAllowed) throw new Error('Access denied');
   return target.followingInfo;
 };
@@ -135,6 +145,8 @@ exports.unfollowUser = async (userId, targetId) => {
 
   // Remove the relationship
   currentUser.following.pull(targetUser.user_id);
+  currentUser.follower.pull(targetUser.user_id);
+  targetUser.following.pull(currentUser.user_id);
   targetUser.follower.pull(currentUser.user_id);
 
   await currentUser.save();
@@ -146,13 +158,13 @@ exports.checkFollowStatus = async (userId, targetId) => {
   const user = await UserService.findUserById(userId);
   const target = await UserService.findUserById(targetId);
 
-  if(user.follower.includes(target.user_id) && user.following.includes(target.user_id)){
+  if (user.follower.includes(target.user_id) && user.following.includes(target.user_id)) {
     return 'connected';
   }
   if (user.pendingRequests.includes(target.user_id)) {
     return 'Requested';
   }
-  if(user.followRequests.includes(target.user_id) || target.pendingRequests.includes(user.user_id)){
+  if (user.followRequests.includes(target.user_id) || target.pendingRequests.includes(user.user_id)) {
     return 'incoming request';
   }
   return 'not following';

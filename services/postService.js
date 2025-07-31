@@ -2,13 +2,15 @@ const Post = require('../models/Post');
 const mongoose = require('mongoose');
 const { types } = require('mongoose');
 const { triggerNotification } = require('../sockets/notificationSocket');
+const { connectedUsers } = require('../sockets/socket'); // Import connectedUsers map
+const User = require('../models/User');
 
- 
+
 
 
 exports.createPost = async (data) => {
   const post_id = new mongoose.Types.ObjectId().toString();
-  const post = new Post({ ...data, post_id }); 
+  const post = new Post({ ...data, post_id });
   await post.save();
   return post;
 };
@@ -24,12 +26,13 @@ exports.deletePost = async (postId, userId) => {
 
 exports.likePost = async (postId, userId) => {
   const post = await Post.findOne({ post_id: postId });
-  if (!post.likes.includes(userId)){
-     post.likes.push(userId);
-     console.log("post.likes:", post.likes);
+  const sender = await User.findOne({ user_id: userId });
+  if (!post.likes.includes(userId)) {
+    post.likes.push(userId);
+    console.log("post.likes:", post.likes);
     await post.save();
 
-     
+    try {
       console.log("nofication triggered");
       await triggerNotification({
         user: post.user,          // Receiver
@@ -37,7 +40,21 @@ exports.likePost = async (postId, userId) => {
         from: userId,
         postId: post.post_id
       });
-    
+
+      // ✅ Send LIVE notification if user is online
+      const targetSocket = connectedUsers.get(post.user);
+      console.log("targetSocket:", targetSocket);
+      if (targetSocket) {
+        targetSocket.emit('notification', {
+          type: 'like',
+          from: userId,
+          timestamp: new Date()
+        });
+      }
+    } catch (err) {
+      console.error('Error triggering like notification:', err);
+    }
+
 
   }
   return post;
@@ -52,19 +69,32 @@ exports.unlikePost = async (postId, userId) => {
 
 exports.addComment = async (postId, userId, text, mentions) => {
   const post = await Post.findOne({ post_id: postId });
+  const sender = await User.findOne({ user_id: userId });
   const comment_id = new mongoose.Types.ObjectId().toString();
   post.comments.push({ user: userId, text, mentions, comment_id });
   await post.save();
-
-  // Notify post owner (unless commenting on own post)
-  if (post.user !== userId) {
-    await triggerNotification({
-      user: post.user,
-      type: 'comment',
-      from: userId,
-      postId: post.post_id,
-      comment_id
-    });
+  try {
+    // Notify post owner (unless commenting on own post)
+    if (post.user !== userId) {
+      await triggerNotification({
+        user: post.user,
+        type: 'comment',
+        from: userId,
+        postId: post.post_id,
+        comment_id
+      });
+      // ✅ Send LIVE notification if user is online
+      const targetSocket = connectedUsers.get(post.user);
+      if (targetSocket) {
+        targetSocket.emit('notification', {
+          type: 'comment',
+          from: userId,
+          timestamp: new Date()
+        });
+      }
+    }
+  } catch (err) {
+    console.error('Error triggering comment notification:', err);
   }
 
   // Notify mentions (skip duplicates and post owner)
@@ -78,6 +108,15 @@ exports.addComment = async (postId, userId, text, mentions) => {
         postId: post.post_id,
         comment_id
       });
+      // ✅ Send LIVE notification if user is online
+      const targetSocket = connectedUsers.get(mention);
+      if (targetSocket) {
+        targetSocket.emit('notification', {
+          type: 'mention',
+          from: userId,
+          timestamp: new Date()
+        });
+      }
     }
   }
 
