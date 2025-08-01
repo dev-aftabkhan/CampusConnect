@@ -53,7 +53,8 @@ exports.getProfile = async (req, res) => {
             postObj.comments = enrichedComments;
             enrichedPosts.push(postObj);
           }
-
+        // get createdAt
+        const createdAt = user.createdAt ? user.createdAt.toISOString() : new Date().toISOString();
         res.status(200).json({
           user: {
             user_id: user.user_id,
@@ -70,6 +71,7 @@ exports.getProfile = async (req, res) => {
             mutualCount,
             mutuals,
             status, 
+            createdAt, // include createdAt
           },
         });
        
@@ -228,7 +230,8 @@ exports.getUserProfile = async (req, res) => {
             postObj.comments = enrichedComments;
             enrichedPosts.push(postObj);
           }
-
+    // get createdAt 
+    const createdAt = user.createdAt ? user.createdAt.toISOString() : new Date().toISOString();
 
     // ✅ Return full profile
     res.status(200).json({
@@ -243,7 +246,8 @@ exports.getUserProfile = async (req, res) => {
         postCount,
         followerCount,
         followingCount,
-        posts // full post list
+        posts, // full post list
+        createdAt, // include createdAt
       },
     });
   } catch (error) {

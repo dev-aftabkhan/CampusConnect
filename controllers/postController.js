@@ -112,28 +112,46 @@ exports.addComment = async (req, res) => {
   try {
     const postId = req.params.id;
     const userId = req.user;
-
-    // Find the post first
+    // Check if the post exists and if the user is allowed to comment
     const post = await Post.findOne({ post_id: postId });
     if (!post) return res.status(404).json({ message: 'Post not found' });
 
-    // Get the owner of the post
-    const postOwner = await User.findOne({ user_id: post.user });
+     const postOwner = await User.findOne({ user_id: post.user });
     if (!postOwner) return res.status(404).json({ message: 'Post owner not found' });
 
-    // Check if the current user is a follower or the owner
-    const isFollower = postOwner.follower.includes(userId); // <-- assuming array of strings
+    const isFollower = postOwner.follower.includes(userId);
     const isOwner = postOwner.user_id === userId;
-    
-
+    // If not a follower or owner, restrict commenting
     if (!isFollower && !isOwner) {
       return res.status(403).json({ message: 'Only followers can comment' });
     }
 
-    // Add comment using service
-    const posts = await postService.addComment(postId, userId, req.body.text, req.body.mentions || []);
-    res.json(posts.comments);
+    // Add comment
+    const updatedPost = await postService.addComment(postId, userId, req.body.text, req.body.mentions || []);
+
+    // Fetch all users for all comment user_ids in one query to optimize
+    const userIds = updatedPost.comments.map(c => c.user);
+    const users = await User.find({ user_id: { $in: userIds } });
+
+    // Map user_id -> user data
+    const userMap = {};
+    users.forEach(user => {
+      userMap[user.user_id] = {
+        username: user.username,
+        profilePicture: user.profilePicture
+      };
+    });
+
+    // Attach user data to each comment
+    const commentsWithUserData = updatedPost.comments.map(comment => ({
+      ...comment.toObject(),  // Convert from Mongoose object to plain JS
+      username: userMap[comment.user]?.username || 'Unknown',
+      profilePicture: userMap[comment.user]?.profilePicture || ''
+    }));
+
+    res.json(commentsWithUserData);
   } catch (err) {
+    console.error('Error adding comment:', err);
     res.status(400).json({ message: err.message });
   }
 };
@@ -219,24 +237,54 @@ exports.isPostLiked = async (req, res) => {
 exports.getPostById = async (req, res) => {
   try {
     const postId = req.params.id;
-    const userId = req.user;
+    const userId = req.user?.id || req.user; // Fallback if req.user is directly the ID
 
     const post = await postService.getPostById(postId, userId);
     if (!post) return res.status(404).json({ message: 'Post not found' });
 
-    // enrich post with user details
-    const user = await User.findOne({ user_id: post.user });
-    post.username = user ? user.username : 'Unknown';
-    post.profilePicture = user ? user.profilePicture : '';
+    // Add post creator's info
+    const postUser = await User.findOne({ user_id: post.user });
+    const postData = {
+      ...post.toObject(),
+      username: postUser?.username || 'Unknown',
+      profilePicture: postUser?.profilePicture || '',
+    };
 
-    // enrich comments with user details
-    for (const comment of post.comments) {
-      const commentUser = await User.findOne({ user_id: comment.user });
-      comment.username = commentUser ? commentUser.username : 'Unknown';
-      comment.profilePicture = commentUser ? commentUser.profilePicture : '';
+    // Enrich comments with user details
+    const commentUserIds = post.comments.map(comment => comment.user);
+    const usersMap = await User.find({ user_id: { $in: commentUserIds } })
+      .then(users => {
+        return users.reduce((acc, u) => {
+          acc[u.user_id] = u;
+          return acc;
+        }, {});
+      });
+
+    postData.comments = post.comments.map(comment => ({
+      ...comment.toObject(),
+      username: usersMap[comment.user]?.username || 'Unknown',
+      profilePicture: usersMap[comment.user]?.profilePicture || '',
+    }));
+
+    res.json(postData);
+  } catch (err) {
+    console.error('Error in getPostById:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+// get comments with username and profile picture for a post
+exports.getComments = async (req, res) => {
+  try {
+    const postId = req.params.id;
+    const comments = await postService.getComments(postId);
+
+    if (!comments) {
+      return res.status(404).json({ message: 'Post not found' });
     }
 
-    res.json(post);
+    res.json(comments); // Send ready-to-use comments with user info
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

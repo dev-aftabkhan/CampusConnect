@@ -10,6 +10,7 @@ router.delete('/:id', protect, postController.deletePost);
 router.post('/:id/like', protect, postController.likePost);
 router.post('/:id/unlike', protect, postController.unlikePost);
 router.post('/:id/comment', protect, postController.addComment);
+router.get('/:id/comments', protect, postController.getComments);
 router.delete('/:id/comment/:commentId', protect, postController.deleteComment);
 router.get('/popular', protect, postController.getPopularPosts);
 router.get('/recentposts', protect, postController.getRecentPosts);

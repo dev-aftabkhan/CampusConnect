@@ -184,3 +184,24 @@ exports.isPostLiked = async (postId, userId) => {
 exports.getPostById = async (postId) => {
   return await Post.findOne({ post_id: postId });
 };
+
+// get comments with username and profilepicture for a post
+exports.getComments = async (postId) => {
+  const post = await Post.findOne({ post_id: postId });
+  if (!post) throw new Error('Post not found');
+
+  // Populate user information for each comment
+  const commentsWithUserInfo = await Promise.all(post.comments.map(async (comment) => {
+    const user = await User.findOne({ user_id: comment.user });
+    return {
+      comment_id: comment.comment_id,
+      text: comment.text,
+      user_id: comment.user, // keep user_id for linking
+      createdAt: comment.createdAt,
+      username: user?.username || 'Unknown',
+      profilePicture: user?.profilePicture || 'default.jpg',
+    };
+  }));
+
+  return commentsWithUserInfo;
+};
