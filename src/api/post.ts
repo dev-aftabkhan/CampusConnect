@@ -107,7 +107,7 @@ export async function addComment(
   { text, mentions }: { text: string; mentions: string[] }
 ) {
   const token = localStorage.getItem('token');
-  return axios.post(
+  const res = await axios.post(
     `${import.meta.env.VITE_API_BASE_URL}/posts/${postId}/comment`,
     { text, mentions },
     {
@@ -117,6 +117,8 @@ export async function addComment(
       },
     }
   );
+  console.log("👉 comment API response", res.data);
+  return res.data.comment || res.data; 
 }
 
 export async function deleteComment(postId: string, commentId: string) {
@@ -173,3 +175,21 @@ export async function getPostById(postId: string) {
     },
   });
 }
+
+export async function fetchPostComments(postId: string){
+  try {
+    const res = await axios.get(
+      `${import.meta.env.VITE_API_BASE_URL}/posts/${postId}/comments`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
+
+    return res.data.comments; // Adjust if structure is different
+  } catch (error) {
+    console.error("Failed to fetch comments:", error);
+    return [];
+  }
+};

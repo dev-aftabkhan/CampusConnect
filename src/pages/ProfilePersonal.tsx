@@ -291,8 +291,10 @@ export default function ProfilePersonal() {
                 <div className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
                   <span>
-                    Joined{" "}
-                    {new Date(profileData.createdAt).toLocaleDateString()}
+                    Joined {new Date(profileData.createdAt).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "long",
+                      })}
                   </span>
                 </div>
               </div>

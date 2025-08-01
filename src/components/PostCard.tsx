@@ -20,6 +20,7 @@ import {
   CarouselNext,
 } from "@/components/ui/carousel";
 import { likePost, unlikePost, addComment, deleteComment } from "@/api/post";
+import { fetchPostComments } from "@/api/post";
 import { toast } from "@/components/ui/use-toast";
 
 export function PostCard({
@@ -45,6 +46,7 @@ export function PostCard({
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [post, setPost] = useState(initialPost);
+
 
   useEffect(() => {
     setLiked(post.likes.includes(currentUserId));
@@ -107,32 +109,48 @@ export function PostCard({
     }
   };
 
+  
+
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
     setLoading(true);
+  
     try {
       const mentions = newComment.match(/@\w+/g)?.map((m) => m.slice(1)) || [];
-
-      await addComment(post.post_id, {
+  
+      const res = await addComment(post.post_id, {
         text: newComment,
         mentions,
       });
-
-      setNewComment("");
-
-      // ✅ Trigger the latest post and comments (with usernames and pictures)
+      const commentUser = res.user || {}; // safely get user info
+  
+      // Normalize comment like refreshPost() does
+      const newCommentObj = {
+        comment_id: res.comment_id || res._id,
+        text: res.text || "",
+        username: res.username || commentUser.username || "User",
+        user: commentUser._id || res.user || "",
+        profilePicture: commentUser.profilePicture || "",
+      };
+  
+      setCommentList((prev) => [...prev, newCommentObj]);
       await refreshPost();
-
-      toast({ title: "Comment added!", variant: "default" });
+      setNewComment("");
+      
+      toast({ title: "Comment added!" });
     } catch (error: any) {
+      console.error("Add comment error:", error);
       toast({
-        title: error?.response?.data?.message || "Failed to add comment",
+        title: "Failed to add comment",
+        description:
+          error?.response?.data?.message || error.message || "Unknown error",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
+  
 
   const handleDeleteComment = async (postId, commentId) => {
     try {
@@ -152,7 +170,7 @@ export function PostCard({
       ? [post.postType]
       : [];
 
-  const hasMedia = post.mediaType === "image" && post.media.length > 0;
+  const hasMedia = post.mediaType === "image" && Array.isArray(post.media) && post.media.length > 0;
 
   return (
     <Card className="w-full max-w-4xl bg-background border rounded-2xl shadow-md overflow-hidden">
@@ -315,15 +333,16 @@ export function PostCard({
           >
             <MessageSquare className="h-5 w-5 text-muted-foreground group-hover:text-primary" />
             <span className="text-sm text-muted-foreground group-hover:text-foreground">
-              {commentList.length}{" "}
-              {commentList.length === 1 ? "Comment" : "Comments"}
+            {Array.isArray(commentList) ? commentList.length : 0}{" "}
+            {Array.isArray(commentList) && commentList.length === 1 ? "Comment" : "Comments"}
+
             </span>
           </div>
         </div>
 
         {showCommentBox && (
           <div className="space-y-4 w-full">
-            {commentList.map((comment, index) => {
+            {Array.isArray(commentList) && commentList.map((comment, index) => {
               const key =
                 comment.comment_id || comment._id || `comment-${index}`;
               return (
