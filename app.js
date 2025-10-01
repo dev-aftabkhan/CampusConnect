@@ -16,7 +16,7 @@ connectDB();
 
 const app = express();
 app.use(cors({
-  origin: 'https://campus-connect-git-frontend-dev-aftabkhans-projects.vercel.app',  
+  origin: ['https://campus-connect-git-frontend-dev-aftabkhans-projects.vercel.app', 'https://campus-connect-wine.vercel.app'],
     credentials: true                
   }));
 app.use(express.json());
