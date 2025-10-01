@@ -5,7 +5,7 @@ const fs = require('fs');
 const Post = require('../models/Post');
 const User = require('../models/User');
 const followService = require('../services/followService');
- 
+const cloudinary = require('../config/cloudinaryConfig');
 const path = require('path'); 
 
 
@@ -164,32 +164,24 @@ exports.updateProfilePicture = async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No image uploaded' });
 
   try {
-    const user = await userService.findUserById(req.user);
+    const user = await User.findOne({ user_id: req.user });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-     //Delete old image (if exists)
+    // Delete old image from Cloudinary if exists
     if (user.profilePicture) {
-      const imagePath = path.join(
-        __dirname,
-        '..',
-        'uploads',
-        'profile',
-        path.basename(user.profilePicture)
-      );
-
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
-        console.log('Old image deleted:', imagePath);
-      } else {
-        console.log('Old image not found at:', imagePath);
+      const publicId = user.profilePicture.split('/').pop().split('.')[0]; // get public_id
+      try {
+        await cloudinary.uploader.destroy(`profile/${publicId}`);
+      } catch (err) {
+        console.log('Old image deletion failed:', err.message);
       }
     }
-    const newPath = `${req.protocol}://${req.get('host')}/uploads/profile/${req.file.filename}`;
 
-    user.profilePicture = newPath;
+    // Save new Cloudinary URL
+    user.profilePicture = req.file.path; // multer-cloudinary storage stores URL in `path`
     await user.save();
 
-    res.json({ message: 'Profile picture updated', profilePicture: newPath });
+    res.json({ message: 'Profile picture updated', profilePicture: user.profilePicture });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });

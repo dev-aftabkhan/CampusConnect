@@ -16,7 +16,7 @@ connectDB();
 
 const app = express();
 app.use(cors({
-  origin: 'http://20.192.25.27:3100',  
+  origin: 'https://campus-connect-git-frontend-dev-aftabkhans-projects.vercel.app',  
     credentials: true                
   }));
 app.use(express.json());
