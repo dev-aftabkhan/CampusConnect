@@ -5,7 +5,7 @@ import { toast } from "@/hooks/use-toast";
 let Socket: ReturnType<typeof io> | null = null;
 
 export const connectSocket = (token) => {
-  Socket = io("http://20.192.25.27:4242", {
+  Socket = io("https://campusconnect-6fi8.onrender.com", {
     auth: {
       token, // JWT token
     },
@@ -22,7 +22,7 @@ export const disconnectSocket = () => {
   }
 };
 
-const API_BASE = "http://20.192.25.27:4242";
+const API_BASE = "https://campusconnect-6fi8.onrender.com";
 
 let notificationSocket: ReturnType<typeof io> | null = null;
 
