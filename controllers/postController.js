@@ -1,20 +1,18 @@
 const Post = require('../models/Post');
 const User = require('../models/User');
 const postService = require('../services/postService');
+const cloudinary = require('../config/cloudinaryConfig');
 const fs = require('fs');
 const path = require('path');
 
 exports.createPost = async (req, res) => {
   try {
-    const files = req.files.map(f => {
-        const folder = f.mimetype.startsWith('video') ? 'videos' : 'images';
-        return `${req.protocol}://${req.get('host')}/uploads/posts/${folder}/${f.filename}`;
-    });
+    const mediaurl = req.files.map(file => file.path);
 
     const post = await postService.createPost({
       user: req.user,
       message: req.body.message,
-      media: files,
+      media: mediaurl,
       mediaType: req.body.mediaType,
       postType: req.body.postType,
       mentions: req.body.mentions || []
