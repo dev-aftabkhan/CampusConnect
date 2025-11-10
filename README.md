@@ -15,7 +15,7 @@ It features **profiles, posts with media, likes, comments, real-time chat, notif
 * 💬 **Real-Time Chat:** One-to-one messaging via WebSocket
 * 🔔 **Live Notifications:** Likes, comments, follows, and messages
 * ☁️ **Media Uploads:** Cloudinary integration
-* 🎨 **Frontend:** TypeScript + Vite + Tailwind + shadcn-ui
+* 🎨 **Frontend:** TypeScript + Vite + Tailwind + shadcn-ui.
 
 ---
 
